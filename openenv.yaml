@@ -1,0 +1,11 @@
+name: my-openenv
+version: 0.1.0
+description: "TODO: describe your environment"
+tags: [openenv]
+tasks:
+  - name: easy_task
+    difficulty: easy
+  - name: medium_task
+    difficulty: medium
+  - name: hard_task
+    difficulty: hard
