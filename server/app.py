@@ -124,3 +124,12 @@ def run_baseline(request: BaselineRequest):
     )
     scores = {t: None for t in tasks}
     return BaselineResponse(scores=scores)
+
+
+def main():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+if __name__ == "__main__":
+    main()

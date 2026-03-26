@@ -16,7 +16,7 @@ check: lint
 	uv run ruff format --check .
 
 test:
-	uv run pytest
+	uv run --extra dev python -m pytest tests/ -v --tb=short -m "not integration"
 
 serve:
 	uv run uvicorn server.app:app --reload
