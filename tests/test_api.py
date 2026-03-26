@@ -98,3 +98,18 @@ class TestHackathonEndpoints:
         assert "easy" in data["scores"]
         assert "medium" in data["scores"]
         assert "hard" in data["scores"]
+
+
+# ── Group 3: Gradio web interface ─────────────────────────────
+
+class TestWebInterface:
+    """Verify Gradio web UI is mounted."""
+
+    def test_web_interface_is_accessible(self, client):
+        response = client.get("/web")
+        # Gradio mounts at /web — should return 200 or redirect (307)
+        assert response.status_code in (200, 307)
+
+    def test_web_interface_not_404(self, client):
+        response = client.get("/web")
+        assert response.status_code != 404

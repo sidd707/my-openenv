@@ -1,15 +1,16 @@
 """
 FastAPI application entry point for SafeAct-Env.
-Uses openenv-core's create_fastapi_app for standard endpoints.
+Uses openenv-core's create_app for standard endpoints + Gradio web UI.
 Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
+import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from openenv.core.env_server.http_server import create_fastapi_app
+from openenv.core.env_server.http_server import create_app
 from models import AgentAction, ActionRecord, SystemObservation
 from server.environment import IrreversibleActionEnv
 from server.tasks.easy import FileCleanupTask
@@ -54,7 +55,8 @@ _ACTION_SCHEMA = {
 }
 
 # ── Create base app from openenv-core ────────────────────────
-app = create_fastapi_app(
+os.environ.setdefault("ENABLE_WEB_INTERFACE", "true")
+app = create_app(
     env=IrreversibleActionEnv,
     action_cls=AgentAction,
     observation_cls=SystemObservation,
