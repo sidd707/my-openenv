@@ -13,14 +13,14 @@ from server.tasks.base import BaseTask
 
 
 INITIAL_TABLES = {
-    "users":        {"rows": 50000,  "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "archived": False, "deleted": False, "size_mb": 500},
-    "sessions":     {"rows": 200000, "last_accessed_days_ago": 2,   "has_foreign_keys": True,  "backed_up": False, "archived": False, "deleted": False, "size_mb": 200},
-    "audit_log":    {"rows": 500000, "last_accessed_days_ago": 180, "has_foreign_keys": False, "backed_up": False, "archived": False, "deleted": False, "size_mb": 800},
-    "temp_imports": {"rows": 10000,  "last_accessed_days_ago": 90,  "has_foreign_keys": False, "backed_up": False, "archived": False, "deleted": False, "size_mb": 100},
-    "old_reports":  {"rows": 75000,  "last_accessed_days_ago": 365, "has_foreign_keys": False, "backed_up": False, "archived": False, "deleted": False, "size_mb": 300},
-    "cache_data":   {"rows": 5000,   "last_accessed_days_ago": 7,   "has_foreign_keys": False, "backed_up": False, "archived": False, "deleted": False, "size_mb": 50},
-    "products":     {"rows": 10000,  "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "archived": False, "deleted": False, "size_mb": 150},
-    "orders":       {"rows": 300000, "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "archived": False, "deleted": False, "size_mb": 600},
+    "users":        {"rows": 50000,  "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 500},
+    "sessions":     {"rows": 200000, "last_accessed_days_ago": 2,   "has_foreign_keys": True,  "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 200},
+    "audit_log":    {"rows": 500000, "last_accessed_days_ago": 180, "has_foreign_keys": False, "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 800},
+    "temp_imports": {"rows": 10000,  "last_accessed_days_ago": 90,  "has_foreign_keys": False, "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 100},
+    "old_reports":  {"rows": 75000,  "last_accessed_days_ago": 365, "has_foreign_keys": False, "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 300},
+    "cache_data":   {"rows": 5000,   "last_accessed_days_ago": 7,   "has_foreign_keys": False, "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 50},
+    "products":     {"rows": 10000,  "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 150},
+    "orders":       {"rows": 300000, "last_accessed_days_ago": 1,   "has_foreign_keys": True,  "backed_up": False, "analyzed": False, "archived": False, "deleted": False, "size_mb": 600},
 }
 
 _ACTIONS = [
@@ -93,7 +93,11 @@ class DatabaseMaintenanceTask(BaseTask):
         tables = state["tables"]
         table_name = parameters.get("table", "")
 
-        if action_name == "create_backup":
+        if action_name == "analyze_table_usage":
+            if table_name in tables:
+                tables[table_name]["analyzed"] = True
+
+        elif action_name == "create_backup":
             if table_name in tables:
                 tables[table_name]["backed_up"] = True
 
@@ -139,7 +143,7 @@ class DatabaseMaintenanceTask(BaseTask):
         }
         stale_cleaned = sum(
             1 for info in stale_tables.values()
-            if info["archived"] or info["deleted"]
+            if info["analyzed"] and (info["archived"] or info["deleted"])
         )
         perf_score = (stale_cleaned / len(stale_tables)) * 0.3 if stale_tables else 0.0
 
