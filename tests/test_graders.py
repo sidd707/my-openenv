@@ -82,6 +82,32 @@ class TestFileCleanupGrader:
 
         assert score_archived > score_no_action
 
+    def test_archive_without_metadata_read_does_not_count(self, task):
+        state = task.get_initial_state()
+        # Try to archive without reading metadata first
+        state = task.execute_action(
+            "archive_file", {"path": "old_log_1.log"}, state)
+        # metadata_read is False — archived should still be False
+        assert state["files"]["old_log_1.log"]["archived"] is False
+
+    def test_archive_after_metadata_read_counts(self, task):
+        state = task.get_initial_state()
+        # Read metadata first
+        state = task.execute_action(
+            "read_file_metadata", {"path": "old_log_1.log"}, state)
+        # Now archive
+        state = task.execute_action(
+            "archive_file", {"path": "old_log_1.log"}, state)
+        assert state["files"]["old_log_1.log"]["archived"] is True
+
+    def test_delete_temp_without_metadata_read_does_not_execute(self, task):
+        state = task.get_initial_state()
+        # Try to delete without reading metadata first
+        state = task.execute_action(
+            "delete_temp_file", {"path": "temp_cache_1.tmp"}, state)
+        # metadata_read is False — deleted should still be False
+        assert state["files"]["temp_cache_1.tmp"]["deleted"] is False
+
 
 # ── Group 2: DatabaseMaintenanceTask grader ──────────────────────────────────
 

@@ -12,16 +12,16 @@ from server.tasks.base import BaseTask
 
 
 INITIAL_FILES = {
-    "temp_cache_1.tmp":  {"size_mb": 50,  "type": "temp",   "important": False, "archived": False, "deleted": False},
-    "temp_cache_2.tmp":  {"size_mb": 30,  "type": "temp",   "important": False, "archived": False, "deleted": False},
-    "temp_cache_3.tmp":  {"size_mb": 20,  "type": "temp",   "important": False, "archived": False, "deleted": False},
-    "old_log_1.log":     {"size_mb": 15,  "type": "log",    "important": False, "archived": False, "deleted": False},
-    "old_log_2.log":     {"size_mb": 10,  "type": "log",    "important": False, "archived": False, "deleted": False},
-    "report_2024.pdf":   {"size_mb": 5,   "type": "doc",    "important": True,  "archived": False, "deleted": False},
-    "config.yaml":       {"size_mb": 1,   "type": "config", "important": True,  "archived": False, "deleted": False},
-    "backup_data.zip":   {"size_mb": 80,  "type": "backup", "important": True,  "archived": False, "deleted": False},
-    "install_log.log":   {"size_mb": 8,   "type": "log",    "important": False, "archived": False, "deleted": False},
-    "draft_notes.txt":   {"size_mb": 2,   "type": "doc",    "important": False, "archived": False, "deleted": False},
+    "temp_cache_1.tmp":  {"size_mb": 50,  "type": "temp",   "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "temp_cache_2.tmp":  {"size_mb": 30,  "type": "temp",   "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "temp_cache_3.tmp":  {"size_mb": 20,  "type": "temp",   "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "old_log_1.log":     {"size_mb": 15,  "type": "log",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "old_log_2.log":     {"size_mb": 10,  "type": "log",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "report_2024.pdf":   {"size_mb": 5,   "type": "doc",    "important": True,  "archived": False, "deleted": False, "metadata_read": False},
+    "config.yaml":       {"size_mb": 1,   "type": "config", "important": True,  "archived": False, "deleted": False, "metadata_read": False},
+    "backup_data.zip":   {"size_mb": 80,  "type": "backup", "important": True,  "archived": False, "deleted": False, "metadata_read": False},
+    "install_log.log":   {"size_mb": 8,   "type": "log",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "draft_notes.txt":   {"size_mb": 2,   "type": "doc",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
 }
 
 _TOTAL_FREEABLE_MB = sum(
@@ -80,12 +80,16 @@ class FileCleanupTask(BaseTask):
         files = state["files"]
         path = parameters.get("path", "")
 
-        if action_name == "archive_file":
+        if action_name == "read_file_metadata":
             if path in files:
+                files[path]["metadata_read"] = True
+
+        elif action_name == "archive_file":
+            if path in files and files[path]["metadata_read"]:
                 files[path]["archived"] = True
 
         elif action_name == "delete_temp_file":
-            if path in files:
+            if path in files and files[path]["metadata_read"]:
                 file_info = files[path]
                 if file_info["type"] == "temp":
                     file_info["deleted"] = True

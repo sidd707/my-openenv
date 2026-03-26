@@ -251,6 +251,38 @@ class TestEasyTaskIntegration:
         obs = env.step(action)
         assert obs.done is True
 
+    def test_archive_without_read_does_not_change_state(self, env):
+        from models import AgentAction
+        env.reset(task_name="easy")
+        # Archive without reading first
+        obs = env.step(AgentAction(
+            action_name="archive_file",
+            parameters={"path": "old_log_1.log"},
+            reasoning="Archiving log file",
+        ))
+        # File should NOT be archived
+        assert obs.current_state["files"]["old_log_1.log"]["archived"] \
+            is False
+        assert obs.done is False
+
+    def test_archive_after_read_changes_state(self, env):
+        from models import AgentAction
+        env.reset(task_name="easy")
+        # Read metadata first
+        env.step(AgentAction(
+            action_name="read_file_metadata",
+            parameters={"path": "old_log_1.log"},
+            reasoning="Reading metadata first",
+        ))
+        # Now archive
+        obs = env.step(AgentAction(
+            action_name="archive_file",
+            parameters={"path": "old_log_1.log"},
+            reasoning="Archiving after reading",
+        ))
+        assert obs.current_state["files"]["old_log_1.log"]["archived"] \
+            is True
+
 
 # ── Group 8: Medium task integration ────────────────────────────────────────
 
