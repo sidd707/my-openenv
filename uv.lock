@@ -850,7 +850,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "httpx" },
     { name = "openai" },
-    { name = "openenv-core" },
+    { name = "openenv-core", extra = ["core"] },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "uvicorn", extra = ["standard"] },
@@ -869,7 +869,7 @@ requires-dist = [
     { name = "fastmcp" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "openai", specifier = ">=1.0.0" },
-    { name = "openenv-core" },
+    { name = "openenv-core", extras = ["core"], specifier = ">=0.2.1" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
@@ -960,6 +960,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/54/b9/f134f9de0fcb4a44c1376872fb19fe86013a69d226e320dc77217ca2ec78/openenv_core-0.2.2.tar.gz", hash = "sha256:b891eeb38845cd0c72e94f72615b0fe44c893e53822fd0843c1fafc53fc31bad", size = 146412, upload-time = "2026-03-20T17:52:36.651Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2f/fd/9ab2b271ab763ccb6bf83d7495c45cdef4e38877d96ecf9314e1c4a95fae/openenv_core-0.2.2-py3-none-any.whl", hash = "sha256:1b99233448aa824c7974ad7c53d46d2edb9302cdc5a3ab0e2ade3a4943f17a63", size = 174125, upload-time = "2026-03-20T17:52:35.605Z" },
+]
+
+[package.optional-dependencies]
+core = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [[package]]
@@ -1463,8 +1472,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography" },
-    { name = "jeepney" },
+    { name = "cryptography", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "jeepney", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
