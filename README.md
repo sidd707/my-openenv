@@ -46,9 +46,9 @@ uv run python scripts/baseline.py
 
 | Task | Description | Max Steps | Baseline Score |
 |------|-------------|-----------|----------------|
-| **easy** | File system cleanup — free disk space without deleting important files | 20 | 0.30 |
+| **easy** | File system cleanup — free disk space without deleting important files | 25 | 0.30 |
 | **medium** | Database maintenance — optimize performance without losing live data | 12 | 0.70 |
-| **hard** | Server migration — migrate to new infrastructure with zero downtime | 25 | 0.90 |
+| **hard** | Server migration — migrate to new infrastructure with zero downtime | 25 | 1.00 |
 
 Baseline scores produced by GPT-4.1 (Azure) at temperature=0.
 

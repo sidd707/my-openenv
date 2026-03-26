@@ -59,7 +59,7 @@ class TestResetBehaviour:
 
     def test_reset_starts_with_full_steps(self, env):
         obs = env.reset(task_name="easy")
-        assert obs.steps_remaining == 20
+        assert obs.steps_remaining == 25
 
     def test_reset_with_invalid_task_raises_value_error(self, env):
         with pytest.raises(ValueError):
@@ -69,7 +69,7 @@ class TestResetBehaviour:
         env.reset(task_name="easy")
         env.step(make_action())
         obs2 = env.reset(task_name="easy")
-        assert obs2.steps_remaining == 20
+        assert obs2.steps_remaining == 25
         assert obs2.action_history == []
 
 
@@ -141,7 +141,7 @@ class TestEpisodeTermination:
     def test_episode_ends_when_max_steps_reached(self, env):
         env.reset(task_name="easy")
         obs = None
-        for _ in range(20):
+        for _ in range(25):
             obs = env.step(make_action(action_name="read_file_metadata"))
         assert obs.done is True
 
