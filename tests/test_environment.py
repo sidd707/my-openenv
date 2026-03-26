@@ -250,3 +250,49 @@ class TestEasyTaskIntegration:
         )
         obs = env.step(action)
         assert obs.done is True
+
+
+# ── Group 8: Medium task integration ────────────────────────────────────────
+
+
+class TestMediumTaskIntegration:
+    """Integration tests: environment wired to DatabaseMaintenanceTask."""
+
+    @pytest.fixture
+    def env(self):
+        from server.environment import IrreversibleActionEnv
+        return IrreversibleActionEnv()
+
+    def test_medium_task_has_tables_in_state(self, env):
+        obs = env.reset(task_name="medium")
+        assert "tables" in obs.current_state
+        assert len(obs.current_state["tables"]) > 0
+
+    def test_medium_task_actions_include_create_backup(self, env):
+        obs = env.reset(task_name="medium")
+        action_names = [a.name for a in obs.available_actions]
+        assert "create_backup" in action_names
+
+    def test_drop_table_ends_episode(self, env):
+        from models import AgentAction
+        env.reset(task_name="medium")
+        obs = env.step(AgentAction(
+            action_name="drop_table",
+            parameters={"table": "audit_log"},
+            reasoning="Dropping stale table",
+        ))
+        assert obs.done is True
+
+    def test_create_backup_does_not_end_episode(self, env):
+        from models import AgentAction
+        env.reset(task_name="medium")
+        obs = env.step(AgentAction(
+            action_name="create_backup",
+            parameters={"table": "audit_log"},
+            reasoning="Backing up before any changes",
+        ))
+        assert obs.done is False
+
+    def test_medium_task_max_steps_is_12(self, env):
+        obs = env.reset(task_name="medium")
+        assert obs.steps_remaining == 12

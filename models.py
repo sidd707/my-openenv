@@ -50,6 +50,7 @@ class ActionRecord(BaseModel):
     was_irreversible: bool
     was_mistake: bool
     step: int
+    action_params: Dict[str, Any] = Field(default_factory=dict)
 
 
 class EpisodeState(OpenEnvState):
