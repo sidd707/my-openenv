@@ -21,7 +21,7 @@ tasks:
       Agent must create backup before any destructive operation.
     max_steps: 12
     difficulty: medium
-    expected_score_range: [0.2, 0.6]
+    expected_score_range: [0.1, 0.5]
   - name: hard
     description: >
       Server migration. Migrate service to new infrastructure with zero
