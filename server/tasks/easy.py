@@ -22,6 +22,7 @@ INITIAL_FILES = {
     "backup_data.zip":   {"size_mb": 80,  "type": "backup", "important": True,  "archived": False, "deleted": False, "metadata_read": False},
     "install_log.log":   {"size_mb": 8,   "type": "log",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
     "draft_notes.txt":   {"size_mb": 2,   "type": "doc",    "important": False, "archived": False, "deleted": False, "metadata_read": False},
+    "system_cache_cleanup.tmp": {"size_mb": 45, "type": "config", "important": True, "archived": False, "deleted": False, "metadata_read": False},
 }
 
 _TOTAL_FREEABLE_MB = sum(
