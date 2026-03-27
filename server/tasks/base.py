@@ -52,6 +52,21 @@ class BaseTask(ABC):
         """
         return False
 
+    def get_outcome_reward(
+        self,
+        action_name: str,
+        parameters: Dict[str, Any],
+        state_before: Dict[str, Any],
+        state_after: Dict[str, Any],
+    ) -> float:
+        """Outcome-shaped step reward. Called after execute_action().
+        state_before: state snapshot before the action executed.
+        state_after: state after the action executed.
+        Returns a float reward signal for this step.
+        Default: return 0.0 (subclasses override).
+        """
+        return 0.0
+
     @abstractmethod
     def grade(
         self,

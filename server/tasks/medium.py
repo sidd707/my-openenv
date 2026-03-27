@@ -98,6 +98,46 @@ class DatabaseMaintenanceTask(BaseTask):
         risk = self.get_action_risk(action_name)
         return float(_STEP_REWARDS.get(risk, _STEP_REWARDS["unknown"]))
 
+    def get_outcome_reward(
+        self,
+        action_name: str,
+        parameters: Dict[str, Any],
+        state_before: Dict[str, Any],
+        state_after: Dict[str, Any],
+    ) -> float:
+        table = parameters.get("table", "")
+
+        if action_name == "analyze_table_usage":
+            if state_after["tables"].get(table, {}).get("analyzed") and \
+               not state_before["tables"].get(table, {}).get("analyzed"):
+                return 0.2
+            return 0.0
+
+        if action_name == "create_backup":
+            if state_after["tables"].get(table, {}).get("backed_up") and \
+               not state_before["tables"].get(table, {}).get("backed_up"):
+                return 0.2
+            return 0.0
+
+        if action_name == "archive_old_records":
+            t_before = state_before["tables"].get(table, {})
+            t_after = state_after["tables"].get(table, {})
+            if t_after.get("archived") and not t_before.get("archived"):
+                if t_before.get("analyzed") and t_before.get("backed_up"):
+                    return 0.5
+                elif t_before.get("analyzed"):
+                    return 0.1
+                return -0.2
+            return 0.0
+
+        if action_name == "query_table":
+            return 0.05
+
+        if action_name == "escalate_to_human":
+            return 0.15
+
+        return 0.0
+
     def execute_action(
         self,
         action_name: str,

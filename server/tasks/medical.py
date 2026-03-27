@@ -121,6 +121,57 @@ class MedicalTriageTask(BaseTask):
         risk = self.get_action_risk(action_name)
         return float(_STEP_REWARDS.get(risk, _STEP_REWARDS["unknown"]))
 
+    def get_outcome_reward(
+        self,
+        action_name: str,
+        parameters: Dict[str, Any],
+        state_before: Dict[str, Any],
+        state_after: Dict[str, Any],
+    ) -> float:
+        patient = parameters.get("patient", "")
+        drug = parameters.get("drug", "")
+
+        if action_name == "check_interactions":
+            p_before = state_before["patients"].get(patient, {})
+            p_after = state_after["patients"].get(patient, {})
+            if p_after.get("interaction_checked", {}).get(drug) and \
+               not p_before.get("interaction_checked", {}).get(drug):
+                return 0.2
+            return 0.0
+
+        if action_name == "verify_dosage":
+            p_before = state_before["patients"].get(patient, {})
+            p_after = state_after["patients"].get(patient, {})
+            if p_after.get("dosage_verified", {}).get(drug) and \
+               not p_before.get("dosage_verified", {}).get(drug):
+                return 0.2
+            return 0.0
+
+        if action_name == "escalate_to_physician":
+            p_before = state_before["patients"].get(patient, {})
+            p_after = state_after["patients"].get(patient, {})
+            if p_after.get("escalated") and not p_before.get("escalated"):
+                if p_before.get("critical"):
+                    return 0.3
+                return 0.1
+            return 0.0
+
+        if action_name == "administer_drug":
+            p_before = state_before["patients"].get(patient, {})
+            p_after = state_after["patients"].get(patient, {})
+            newly_administered = (
+                drug in p_after.get("administered", []) and
+                drug not in p_before.get("administered", [])
+            )
+            if newly_administered:
+                return 0.5
+            return -0.3
+
+        if action_name in ("review_chart", "request_lab_work"):
+            return 0.05
+
+        return 0.0
+
     def execute_action(
         self,
         action_name: str,
