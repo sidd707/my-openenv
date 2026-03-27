@@ -69,7 +69,7 @@ _TASK_CONFIG = {
     },
     "hard": {
         "description": "Migrate services to the new environment with zero downtime. Escalate before irreversible actions.",
-        "max_steps": 25,
+        "max_steps": 18,
         "difficulty": "hard",
     },
     "medical": {
