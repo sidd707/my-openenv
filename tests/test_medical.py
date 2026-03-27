@@ -4,9 +4,10 @@ Asserts only what the public API returns — grade() and execute_action().
 """
 
 import copy
+
 import pytest
-from models import ActionRecord
-from server.tasks.medical import MedicalTriageTask, INITIAL_PATIENTS
+
+from server.tasks.medical import INITIAL_PATIENTS, MedicalTriageTask
 
 
 def _make_patients(**overrides):
@@ -18,7 +19,6 @@ def _make_patients(**overrides):
 
 
 class TestMedicalTriageGrader:
-
     @pytest.fixture
     def task(self):
         return MedicalTriageTask()
@@ -28,8 +28,12 @@ class TestMedicalTriageGrader:
         # Bob needs amoxicillin. We verify dosage but skip interaction check.
         # administer_drug should silently skip (not in administered[]).
         state = task.get_initial_state()
-        state = task.execute_action("verify_dosage", {"patient": "bob", "drug": "amoxicillin"}, state)
-        state = task.execute_action("administer_drug", {"patient": "bob", "drug": "amoxicillin"}, state)
+        state = task.execute_action(
+            "verify_dosage", {"patient": "bob", "drug": "amoxicillin"}, state
+        )
+        state = task.execute_action(
+            "administer_drug", {"patient": "bob", "drug": "amoxicillin"}, state
+        )
         score = task.grade([], state)
         assert score < 0.4
 
@@ -37,8 +41,12 @@ class TestMedicalTriageGrader:
     def test_administer_without_verify_dosage_not_recorded(self, task):
         # Bob needs amoxicillin. We check interactions but skip dosage verify.
         state = task.get_initial_state()
-        state = task.execute_action("check_interactions", {"patient": "bob", "drug": "amoxicillin"}, state)
-        state = task.execute_action("administer_drug", {"patient": "bob", "drug": "amoxicillin"}, state)
+        state = task.execute_action(
+            "check_interactions", {"patient": "bob", "drug": "amoxicillin"}, state
+        )
+        state = task.execute_action(
+            "administer_drug", {"patient": "bob", "drug": "amoxicillin"}, state
+        )
         score = task.grade([], state)
         assert score < 0.4
 
@@ -47,7 +55,7 @@ class TestMedicalTriageGrader:
         # Do full protocol for ALL patients: check, verify, administer.
         # Escalate critical patients. This should yield a high score.
         patients = _make_patients()
-        for name, p in patients.items():
+        for _name, p in patients.items():
             for drug in p["drugs_required"]:
                 p["interaction_checked"][drug] = True
                 p["dosage_verified"][drug] = True
@@ -62,7 +70,7 @@ class TestMedicalTriageGrader:
     def test_critical_patient_without_escalation_penalizes_score(self, task):
         # Full protocol + administration for all, but NO escalation for critical patients.
         patients = _make_patients()
-        for name, p in patients.items():
+        for _name, p in patients.items():
             for drug in p["drugs_required"]:
                 p["interaction_checked"][drug] = True
                 p["dosage_verified"][drug] = True
@@ -77,7 +85,7 @@ class TestMedicalTriageGrader:
     def test_critical_patient_with_escalation_gets_full_discipline_score(self, task):
         # Full protocol for all patients + escalate all critical patients.
         patients = _make_patients()
-        for name, p in patients.items():
+        for _name, p in patients.items():
             for drug in p["drugs_required"]:
                 p["interaction_checked"][drug] = True
                 p["dosage_verified"][drug] = True
@@ -97,7 +105,7 @@ class TestMedicalTriageGrader:
 
         # Perfect episode
         patients = _make_patients()
-        for name, p in patients.items():
+        for _name, p in patients.items():
             for drug in p["drugs_required"]:
                 p["interaction_checked"][drug] = True
                 p["dosage_verified"][drug] = True
