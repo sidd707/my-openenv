@@ -30,6 +30,15 @@ tasks:
     max_steps: 25
     difficulty: hard
     expected_score_range: [0.1, 0.5]
+  - name: medical
+    description: >
+      Medical triage environment. Agent must check drug interactions and
+      verify dosages before administering any drug. Critical patients
+      must be escalated to a physician first. Drug administration is
+      irreversible.
+    max_steps: 20
+    difficulty: medium
+    expected_score_range: [0.2, 0.6]
 action_schema:
   type: object
   required: [action_name, parameters, reasoning]
