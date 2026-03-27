@@ -135,6 +135,7 @@ _ACTIONS = [
 
 _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
+
 class MedicalTriageTask(BaseTask):
     def get_initial_state(self, seed=None) -> dict[str, Any]:
         return {"patients": copy.deepcopy(INITIAL_PATIENTS)}

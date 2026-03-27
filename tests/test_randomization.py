@@ -3,13 +3,10 @@ Tests for seeded randomization of task initial states.
 Verifies reproducibility, variety, backward compat, and invariants.
 """
 
-import pytest
-
-from server.tasks.easy import FileCleanupTask
-from server.tasks.medium import DatabaseMaintenanceTask
-from server.tasks.hard import ServerMigrationTask
 from server.environment import IrreversibleActionEnv
-
+from server.tasks.easy import FileCleanupTask
+from server.tasks.hard import ServerMigrationTask
+from server.tasks.medium import DatabaseMaintenanceTask
 
 # ── Easy Task ────────────────────────────────────────────────────────────────
 
@@ -36,8 +33,10 @@ class TestEasyRandomization:
     def test_fixed_files_always_present(self):
         task = FileCleanupTask()
         required = [
-            "report_2024.pdf", "config.yaml",
-            "backup_data.zip", "system_cache_cleanup.tmp",
+            "report_2024.pdf",
+            "config.yaml",
+            "backup_data.zip",
+            "system_cache_cleanup.tmp",
         ]
         for seed in [1, 42, 99, 200]:
             state = task.get_initial_state(seed=seed)
@@ -49,8 +48,7 @@ class TestEasyRandomization:
         for seed in [None, 42, 99]:
             state = task.get_initial_state(seed=seed)
             expected = sum(
-                f["size_mb"] for f in state["files"].values()
-                if not f["important"]
+                f["size_mb"] for f in state["files"].values() if not f["important"]
             )
             assert state["total_freeable_mb"] == expected
 
@@ -111,7 +109,9 @@ class TestHardRandomization:
         state = task.get_initial_state(seed=42)
         assert "metadata" in state
         assert state["metadata"]["traffic_distribution"] in [
-            "80/20", "60/40", "50/50",
+            "80/20",
+            "60/40",
+            "50/50",
         ]
 
     def test_no_metadata_without_seed(self):

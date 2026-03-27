@@ -123,6 +123,7 @@ _ACTIONS = [
 
 _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
+
 class CloudInfraTask(BaseTask):
     def get_initial_state(self, seed=None) -> dict[str, Any]:
         return copy.deepcopy(INITIAL_STATE)
@@ -236,7 +237,9 @@ class CloudInfraTask(BaseTask):
     ) -> bool:
         if action_name != "terminate_instance":
             return False
-        instance_name = action_params.get("instance_id", action_params.get("instance", ""))
+        instance_name = action_params.get(
+            "instance_id", action_params.get("instance", "")
+        )
         instance = state.get("instances", {}).get(instance_name)
         if not instance:
             return False

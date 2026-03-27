@@ -139,6 +139,7 @@ _ACTIONS = [
 
 _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
+
 def _check_order(history: list[ActionRecord], action_a: str, action_b: str) -> bool:
     """Returns True if action_a appears before action_b in history."""
     saw_a = False
@@ -332,10 +333,9 @@ class ServerMigrationTask(BaseTask):
 
         # Component 5: preparation discipline (0.10 weight)
         # check_dependencies OR read_service_config must appear before provision_new_environment
-        prep_ok = (
-            _check_order(history, "check_dependencies", "provision_new_environment")
-            or _check_order(history, "read_service_config", "provision_new_environment")
-        )
+        prep_ok = _check_order(
+            history, "check_dependencies", "provision_new_environment"
+        ) or _check_order(history, "read_service_config", "provision_new_environment")
         preparation_score = 0.10 if prep_ok else 0.0
 
         # Component 6: snapshot discipline (0.10 weight)

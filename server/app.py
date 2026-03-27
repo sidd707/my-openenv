@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -18,7 +19,7 @@ from openenv.core.env_server.http_server import create_app
 from pydantic import BaseModel
 
 from models import ActionRecord, AgentAction, SystemObservation
-from server.environment import IrreversibleActionEnv, _TASK_CONFIG
+from server.environment import _TASK_CONFIG, IrreversibleActionEnv
 from server.tasks.cloud_infra import CloudInfraTask
 from server.tasks.easy import FileCleanupTask
 from server.tasks.hard import ServerMigrationTask
@@ -62,7 +63,17 @@ app = create_app(
 # ── Replace stateless /reset and /step with session-aware versions ──
 # The openenv-core creates a fresh env per request which breaks multi-step
 # episodes over HTTP. We store envs keyed by episode_id.
-_ENV_SESSIONS: dict[str, IrreversibleActionEnv] = {}
+_ENV_SESSIONS: dict[str, tuple[IrreversibleActionEnv, float]] = {}
+
+_SESSION_TTL = 300  # 5 minutes
+
+
+def _cleanup_stale_sessions() -> None:
+    now = time.time()
+    stale = [k for k, (_, ts) in _ENV_SESSIONS.items() if now - ts > _SESSION_TTL]
+    for k in stale:
+        del _ENV_SESSIONS[k]
+
 
 # Remove the default /reset and /step routes so ours take precedence
 app.router.routes = [
@@ -94,12 +105,13 @@ def _serialize_observation(obs: SystemObservation) -> dict:
 
 @app.post("/reset")
 def reset_episode(request: ResetRequest):
+    _cleanup_stale_sessions()
     episode_id = request.episode_id or str(uuid.uuid4())
     env = IrreversibleActionEnv()
     obs = env.reset(
         seed=request.seed, episode_id=episode_id, task_name=request.task_name
     )
-    _ENV_SESSIONS[episode_id] = env
+    _ENV_SESSIONS[episode_id] = (env, time.time())
     return _serialize_observation(obs)
 
 
@@ -108,9 +120,9 @@ def step_episode(request: StepRequest):
     # Find env by episode_id, or fall back to most recent session
     env = None
     if request.episode_id and request.episode_id in _ENV_SESSIONS:
-        env = _ENV_SESSIONS[request.episode_id]
+        env, _ = _ENV_SESSIONS[request.episode_id]
     elif _ENV_SESSIONS:
-        env = next(reversed(_ENV_SESSIONS.values()))
+        env, _ = next(reversed(_ENV_SESSIONS.values()))
 
     if env is None:
         raise HTTPException(
@@ -123,6 +135,8 @@ def step_episode(request: StepRequest):
     # Clean up completed episodes
     if getattr(obs, "done", False):
         _ENV_SESSIONS.pop(request.episode_id, None)
+    else:
+        _ENV_SESSIONS[request.episode_id] = (env, time.time())
 
     return _serialize_observation(obs)
 
@@ -130,7 +144,7 @@ def step_episode(request: StepRequest):
 @app.get("/state")
 def get_state():
     if _ENV_SESSIONS:
-        env = next(reversed(_ENV_SESSIONS.values()))
+        env, _ = next(reversed(_ENV_SESSIONS.values()))
         return env.state
     return {}
 

@@ -45,7 +45,12 @@ class TestFileCleanupGrader:
             make_record("delete_temp_file", step=4),
         ]
         final_state = task.get_initial_state()
-        for name in ["temp_cache_1.tmp", "temp_cache_2.tmp", "temp_cache_3.tmp", "temp_cache_4.tmp"]:
+        for name in [
+            "temp_cache_1.tmp",
+            "temp_cache_2.tmp",
+            "temp_cache_3.tmp",
+            "temp_cache_4.tmp",
+        ]:
             final_state["files"][name]["deleted"] = True
         score = task.grade(history, final_state)
         assert score >= 0.55
@@ -170,8 +175,8 @@ class TestDatabaseMaintenanceGrader:
             )
         ]
         score = task.grade(history, state)
-        # perf=1/4*0.25, safety=0.30, backup=0.85*0.25, activity=min(1/6,1)*0.20
-        assert score == pytest.approx(0.608, abs=0.001)
+        # perf=1/4*0.25, safety=0.30, backup=0.85*0.25, activity=min(1/9,1)*0.20
+        assert score == pytest.approx(0.597, abs=0.001)
 
     def test_grader_backup_discipline_passes_with_backup_first(self, task):
         state = task.get_initial_state()
@@ -195,8 +200,8 @@ class TestDatabaseMaintenanceGrader:
             ),
         ]
         score = task.grade(history, state)
-        # perf=1/4*0.25, safety=0.30, backup=0.25, activity=min(2/6,1)*0.20
-        assert score == pytest.approx(0.679, abs=0.001)
+        # perf=1/4*0.25, safety=0.30, backup=0.25, activity=min(2/9,1)*0.20
+        assert score == pytest.approx(0.657, abs=0.001)
 
     def test_grader_is_deterministic(self, task):
         state = task.get_initial_state()
@@ -462,7 +467,9 @@ class TestServerMigrationGrader:
         score2 = task.grade([], state)
         assert score1 == score2
 
-    def test_hard_grader_preparation_discipline_requires_check_before_provision(self, task):
+    def test_hard_grader_preparation_discipline_requires_check_before_provision(
+        self, task
+    ):
         state = task.get_initial_state()
         state["new_environment"]["provisioned"] = True
 
@@ -507,7 +514,9 @@ class TestServerMigrationGrader:
         assert score_good > score_bad
         assert score_good - score_bad == pytest.approx(0.10, abs=0.001)
 
-    def test_hard_grader_snapshot_discipline_requires_snapshot_before_migrate(self, task):
+    def test_hard_grader_snapshot_discipline_requires_snapshot_before_migrate(
+        self, task
+    ):
         state = task.get_initial_state()
         state["databases"]["db_primary"]["migrated"] = True
 
