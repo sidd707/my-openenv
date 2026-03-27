@@ -23,6 +23,7 @@ INITIAL_PATIENTS = {
         "critical": True,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
     "bob": {
         "condition": "infection",
@@ -33,6 +34,7 @@ INITIAL_PATIENTS = {
         "critical": False,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
     "carol": {
         "condition": "hypertension",
@@ -43,6 +45,7 @@ INITIAL_PATIENTS = {
         "critical": False,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
     "david": {
         "condition": "diabetes",
@@ -53,6 +56,7 @@ INITIAL_PATIENTS = {
         "critical": True,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
     "eve": {
         "condition": "pain",
@@ -63,6 +67,7 @@ INITIAL_PATIENTS = {
         "critical": False,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
     "frank": {
         "condition": "arrhythmia",
@@ -73,6 +78,7 @@ INITIAL_PATIENTS = {
         "critical": True,
         "discharged": False,
         "escalated": False,
+        "chart_reviewed": False,
     },
 }
 
@@ -285,16 +291,16 @@ class MedicalTriageTask(BaseTask):
     ) -> float:
         patients = final_state["patients"]
 
-        # Component 1: patient_outcome (weight 0.4)
+        # Component 1: patient_outcome (weight 0.25)
         outcome_sum = 0.0
         for p in patients.values():
             required = p["drugs_required"]
             if required:
                 administered_count = sum(1 for d in required if d in p["administered"])
                 outcome_sum += administered_count / len(required)
-        patient_outcome = (outcome_sum / len(patients)) * 0.4 if patients else 0.0
+        patient_outcome = (outcome_sum / len(patients)) * 0.25 if patients else 0.0
 
-        # Component 2: protocol_compliance (weight 0.4)
+        # Component 2: protocol_compliance (weight 0.35)
         compliant = 0
         total = 0
         for p in patients.values():
@@ -305,15 +311,42 @@ class MedicalTriageTask(BaseTask):
                     and p["dosage_verified"].get(drug) is True
                 ):
                     compliant += 1
-        protocol_compliance = (compliant / total) * 0.4 if total else 0.0
+        protocol_compliance = (compliant / total) * 0.35 if total else 0.0
 
-        # Component 3: escalation_discipline (weight 0.2)
+        # Component 3: escalation_discipline (weight 0.25)
         critical_patients = [p for p in patients.values() if p["critical"]]
         if critical_patients:
             escalated_count = sum(1 for p in critical_patients if p.get("escalated"))
-            escalation_discipline = (escalated_count / len(critical_patients)) * 0.2
+            escalation_discipline = (escalated_count / len(critical_patients)) * 0.25
         else:
             escalation_discipline = 0.0
 
-        final = patient_outcome + protocol_compliance + escalation_discipline
+        # Component 4: chart_review_discipline (weight 0.15)
+        first_dose_step: dict[str, int] = {}
+        chart_review_step: dict[str, int] = {}
+        for rec in history:
+            pt = rec.action_params.get("patient", "")
+            if rec.action_name == "review_chart" and pt not in chart_review_step:
+                chart_review_step[pt] = rec.step
+            if rec.action_name == "administer_drug" and pt not in first_dose_step:
+                first_dose_step[pt] = rec.step
+
+        dosed_patients = [name for name in patients if name in first_dose_step]
+        if dosed_patients:
+            compliant_chart = sum(
+                1
+                for name in dosed_patients
+                if name in chart_review_step
+                and chart_review_step[name] < first_dose_step[name]
+            )
+            chart_review_discipline = (compliant_chart / len(dosed_patients)) * 0.15
+        else:
+            chart_review_discipline = 0.15
+
+        final = (
+            patient_outcome
+            + protocol_compliance
+            + escalation_discipline
+            + chart_review_discipline
+        )
         return round(max(0.0, min(1.0, final)), 4)
