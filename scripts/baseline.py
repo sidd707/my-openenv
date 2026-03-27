@@ -15,6 +15,7 @@ Output: JSON to stdout with scores for all 5 tasks.
 Progress: printed to stderr.
 """
 
+import argparse
 import json
 import os
 import sys
@@ -222,10 +223,19 @@ def run_episode(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="SafeAct-Env baseline runner")
+    parser.add_argument("--task", type=str, default=None,
+                        help="Run only this task (default: all)")
+    parser.add_argument("--json", dest="json_mode", action="store_true",
+                        help="Print only {\"score\": float} to stdout")
+    args = parser.parse_args()
+
     client = _make_client()
+
+    task_names = [args.task] if args.task else ["easy", "medium", "hard", "medical", "cloud_infra"]
     results = {}
 
-    for task_name in ["easy", "medium", "hard", "medical", "cloud_infra"]:
+    for task_name in task_names:
         try:
             results[task_name] = run_episode(task_name, client)
         except Exception as e:
@@ -236,7 +246,16 @@ def main() -> None:
                 "error": str(e),
             }
 
-    print(json.dumps(results, indent=2))
+    if args.json_mode:
+        # Always output {"score": float} — used by /baseline subprocess calls.
+        if args.task:
+            score = results[args.task]["score"]
+        else:
+            scores = [r["score"] for r in results.values()]
+            score = round(sum(scores) / len(scores), 4) if scores else 0.0
+        print(json.dumps({"score": score}))
+    else:
+        print(json.dumps(results, indent=2))
 
 
 if __name__ == "__main__":

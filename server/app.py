@@ -4,7 +4,10 @@ Uses openenv-core's create_app for standard endpoints + Gradio web UI.
 Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
+import json
 import os
+import subprocess
+import sys
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
@@ -132,13 +135,32 @@ def run_grader(request: GraderRequest):
 
 @app.post("/baseline", response_model=BaselineResponse)
 def run_baseline(request: BaselineRequest):
-    """Trigger baseline agent run. Returns null scores until Phase 6."""
+    """Trigger baseline agent run via subprocess."""
     tasks = (
         [request.task_name]
         if request.task_name
         else list(_GRADER_REGISTRY.keys())
     )
-    scores = {t: None for t in tasks}
+
+    # Early exit if no LLM credentials are available
+    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("AZURE_OPENAI_API_KEY"):
+        return BaselineResponse(scores={t: None for t in tasks})
+
+    scores: Dict[str, Optional[float]] = {}
+
+    for task in tasks:
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/baseline.py", "--task", task, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
+            data = json.loads(result.stdout.strip())
+            scores[task] = data["score"]
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, Exception):
+            scores[task] = None
+
     return BaselineResponse(scores=scores)
 
 
