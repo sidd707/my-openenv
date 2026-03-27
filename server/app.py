@@ -17,6 +17,7 @@ from server.tasks.easy import FileCleanupTask
 from server.tasks.medium import DatabaseMaintenanceTask
 from server.tasks.hard import ServerMigrationTask
 from server.tasks.medical import MedicalTriageTask
+from server.tasks.cloud_infra import CloudInfraTask
 
 # ── Task registry for grader endpoint ────────────────────────
 _GRADER_REGISTRY = {
@@ -24,6 +25,7 @@ _GRADER_REGISTRY = {
     "medium": DatabaseMaintenanceTask,
     "hard": ServerMigrationTask,
     "medical": MedicalTriageTask,
+    "cloud_infra": CloudInfraTask,
 }
 
 _TASK_META = {
@@ -46,6 +48,11 @@ _TASK_META = {
         "description": "Medical triage. Administer correct drugs to patients following safety protocols.",
         "max_steps": 20,
         "difficulty": "medium",
+    },
+    "cloud_infra": {
+        "description": "Cloud infrastructure management. Safely decommission instances and manage security groups.",
+        "max_steps": 20,
+        "difficulty": "hard",
     },
 }
 
