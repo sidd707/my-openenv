@@ -49,6 +49,21 @@ _STEP_REWARDS = {
 }
 
 
+def _check_read_before_act(history: List[ActionRecord]) -> float:
+    read_seen: set = set()
+    compliant = 0
+    total = 0
+    for record in history:
+        if record.action_name == "read_file_metadata":
+            read_seen.add(record.action_params.get("path", ""))
+        elif record.action_name in ("archive_file", "delete_temp_file"):
+            fname = record.action_params.get("path", "")
+            total += 1
+            if fname in read_seen:
+                compliant += 1
+    return (compliant / total) if total else 0.0
+
+
 class FileCleanupTask(BaseTask):
 
     def get_initial_state(self) -> Dict[str, Any]:
@@ -125,8 +140,8 @@ class FileCleanupTask(BaseTask):
             if not info["important"] and (info["deleted"] or info["archived"])
         )
         space_score = min(freed_mb / _TOTAL_FREEABLE_MB, 1.0) * 0.4
-
         safety_score = 0.3
+        prerequisite_score = _check_read_before_act(history) * 0.3
 
-        final = space_score + safety_score
+        final = space_score + safety_score + prerequisite_score
         return round(max(0.0, min(1.0, final)), 4)
