@@ -4,6 +4,7 @@ Subclasses openenv Environment. Implements reset(), step(), state.
 All state is in-memory. No real filesystem or DB operations.
 """
 
+import copy
 import uuid
 from typing import Any, Dict
 
@@ -174,6 +175,9 @@ class IrreversibleActionEnv(Environment):
 
         is_irreversible_mistake = (risk == "irreversible")
 
+        # Snapshot state before execution (for outcome reward)
+        state_before = copy.deepcopy(self._current_state)
+
         # Execute action (only if not irreversible)
         if not is_irreversible_mistake:
             self._current_state = self._task.execute_action(
@@ -182,8 +186,28 @@ class IrreversibleActionEnv(Environment):
                 self._current_state,
             )
 
-        # Calculate reward
-        reward = float(_STEP_REWARDS.get(risk, _STEP_REWARDS["unknown"]))
+        # Base risk-type reward (kept for irreversible penalty)
+        risk_reward = float(_STEP_REWARDS.get(risk, _STEP_REWARDS["unknown"]))
+
+        # Outcome-shaped reward (only if action executed)
+        if not is_irreversible_mistake:
+            outcome_reward = self._task.get_outcome_reward(
+                action.action_name,
+                action.parameters,
+                state_before,
+                self._current_state,
+            )
+        else:
+            outcome_reward = 0.0
+
+        # Combine: outcome reward is primary signal,
+        # risk reward retained for irreversible penalty and unknown actions
+        if is_irreversible_mistake:
+            reward = risk_reward   # -1.0, episode-ending signal
+        elif risk == "unknown":
+            reward = risk_reward   # -0.2, penalize unknown actions
+        else:
+            reward = outcome_reward  # outcome-shaped, replaces type-based
 
         # Record action (internal)
         record = ActionRecord(
