@@ -5,20 +5,19 @@ grade() must be deterministic pure Python — no LLM calls ever.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from models import ActionRecord, AvailableAction
 
 
 class BaseTask(ABC):
-
     @abstractmethod
-    def get_initial_state(self) -> Dict[str, Any]:
+    def get_initial_state(self) -> dict[str, Any]:
         """Return the starting system state. Must be a fresh copy each call."""
         ...
 
     @abstractmethod
-    def get_available_actions(self, state: Dict[str, Any]) -> List[AvailableAction]:
+    def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         """Return actions the agent can see. Never include risk labels."""
         ...
 
@@ -33,9 +32,9 @@ class BaseTask(ABC):
     def execute_action(
         self,
         action_name: str,
-        parameters: Dict[str, Any],
-        state: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
         """Execute action, mutate and return updated state.
         Must not raise — return state unchanged for unknown actions.
         """
@@ -44,8 +43,8 @@ class BaseTask(ABC):
     def can_proceed_with_irreversible(
         self,
         action_name: str,
-        parameters: Dict[str, Any],
-        state: Dict[str, Any],
+        parameters: dict[str, Any],
+        state: dict[str, Any],
     ) -> bool:
         """Return True if prerequisites are met to downgrade an irreversible action.
         Default: never downgrade. Override in tasks with safe-after-checks patterns.
@@ -55,9 +54,9 @@ class BaseTask(ABC):
     def get_outcome_reward(
         self,
         action_name: str,
-        parameters: Dict[str, Any],
-        state_before: Dict[str, Any],
-        state_after: Dict[str, Any],
+        parameters: dict[str, Any],
+        state_before: dict[str, Any],
+        state_after: dict[str, Any],
     ) -> float:
         """Outcome-shaped step reward. Called after execute_action().
         state_before: state snapshot before the action executed.
@@ -70,8 +69,8 @@ class BaseTask(ABC):
     @abstractmethod
     def grade(
         self,
-        history: List[ActionRecord],
-        final_state: Dict[str, Any],
+        history: list[ActionRecord],
+        final_state: dict[str, Any],
     ) -> float:
         """Score the episode. Must return float in [0.0, 1.0].
         Must be deterministic — same inputs always produce same output.

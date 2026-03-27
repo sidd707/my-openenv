@@ -1,6 +1,7 @@
 """Phase 5 — API layer behaviour tests.
 Integration tests that start a real TestClient against the app.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -8,13 +9,14 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def client():
     from server.app import app
+
     return TestClient(app, raise_server_exceptions=False)
 
 
 # ── Group 1: openenv standard endpoints ──────────────────────
 
-class TestStandardEndpoints:
 
+class TestStandardEndpoints:
     def test_health_returns_200(self, client):
         response = client.get("/health")
         assert response.status_code == 200
@@ -27,23 +29,21 @@ class TestStandardEndpoints:
         assert "observation" in data
 
     def test_reset_returns_observation(self, client):
-        response = client.post("/reset",
-            json={"task_name": "easy"})
+        response = client.post("/reset", json={"task_name": "easy"})
         assert response.status_code == 200
         data = response.json()
         assert "observation" in data
         assert "done" in data
 
     def test_reset_with_invalid_task_returns_error(self, client):
-        response = client.post("/reset",
-            json={"task_name": "nonexistent"})
+        response = client.post("/reset", json={"task_name": "nonexistent"})
         assert response.status_code in (400, 422, 500)
 
 
 # ── Group 2: hackathon custom endpoints ──────────────────────
 
-class TestHackathonEndpoints:
 
+class TestHackathonEndpoints:
     def test_tasks_returns_all_three_tasks(self, client):
         response = client.get("/tasks")
         assert response.status_code == 200
@@ -70,24 +70,31 @@ class TestHackathonEndpoints:
 
     def test_grader_returns_score_in_range(self, client):
         from server.tasks.easy import FileCleanupTask
+
         task = FileCleanupTask()
         initial_state = task.get_initial_state()
-        response = client.post("/grader", json={
-            "task_name": "easy",
-            "history": [],
-            "final_state": initial_state,
-        })
+        response = client.post(
+            "/grader",
+            json={
+                "task_name": "easy",
+                "history": [],
+                "final_state": initial_state,
+            },
+        )
         assert response.status_code == 200
         data = response.json()
         assert "score" in data
         assert 0.0 <= data["score"] <= 1.0
 
     def test_grader_with_invalid_task_returns_error(self, client):
-        response = client.post("/grader", json={
-            "task_name": "nonexistent",
-            "history": [],
-            "final_state": {},
-        })
+        response = client.post(
+            "/grader",
+            json={
+                "task_name": "nonexistent",
+                "history": [],
+                "final_state": {},
+            },
+        )
         assert response.status_code in (400, 422)
 
     def test_baseline_returns_score_structure(self, client):
@@ -101,6 +108,7 @@ class TestHackathonEndpoints:
 
 
 # ── Group 3: Gradio web interface ─────────────────────────────
+
 
 class TestWebInterface:
     """Verify Gradio web UI is mounted."""

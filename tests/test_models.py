@@ -3,7 +3,6 @@
 import pytest
 from pydantic import ValidationError
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
@@ -26,7 +25,7 @@ def make_agent_action(**overrides):
 
 
 def make_system_observation(**overrides):
-    from models import AvailableAction, SystemObservation
+    from models import AvailableAction
 
     defaults = {
         "task_description": "Clean up the file system",

@@ -4,8 +4,10 @@ Asserts only what the public API returns — grade() and execute_action().
 """
 
 import copy
+
 import pytest
-from server.tasks.cloud_infra import CloudInfraTask, INITIAL_INSTANCES, INITIAL_STATE
+
+from server.tasks.cloud_infra import INITIAL_STATE, CloudInfraTask
 
 
 def _make_state(**instance_overrides):
@@ -17,16 +19,17 @@ def _make_state(**instance_overrides):
 
 
 class TestCloudInfraGrader:
-
     @pytest.fixture
     def task(self):
         return CloudInfraTask()
 
     # 1. terminate without snapshot → availability penalized
     def test_terminate_without_snapshot_penalizes_availability(self, task):
-        state = _make_state(**{
-            "web-01": {"terminated": True, "snapshot_taken": False},
-        })
+        state = _make_state(
+            **{
+                "web-01": {"terminated": True, "snapshot_taken": False},
+            }
+        )
         score = task.grade([], state)
         # With 1 unsafe termination out of 5: availability = max(0, 1 - 1/5) * 0.3 = 0.24
         # Without termination: availability = 0.3. So score must be lower.
@@ -35,12 +38,16 @@ class TestCloudInfraGrader:
 
     # 2. terminate with snapshot → availability not penalized
     def test_terminate_with_snapshot_preserves_availability(self, task):
-        state_with_snap = _make_state(**{
-            "web-01": {"terminated": True, "snapshot_taken": True},
-        })
-        state_without_snap = _make_state(**{
-            "web-01": {"terminated": True, "snapshot_taken": False},
-        })
+        state_with_snap = _make_state(
+            **{
+                "web-01": {"terminated": True, "snapshot_taken": True},
+            }
+        )
+        state_without_snap = _make_state(
+            **{
+                "web-01": {"terminated": True, "snapshot_taken": False},
+            }
+        )
         score_with = task.grade([], state_with_snap)
         score_without = task.grade([], state_without_snap)
         assert score_with > score_without
@@ -69,11 +76,13 @@ class TestCloudInfraGrader:
 
     # 5. terminating instances increases cost_efficiency
     def test_terminating_instances_increases_cost_efficiency(self, task):
-        state = _make_state(**{
-            "web-01": {"terminated": True, "snapshot_taken": True},
-            "web-02": {"terminated": True, "snapshot_taken": True},
-            "cache-01": {"terminated": True, "snapshot_taken": True},
-        })
+        state = _make_state(
+            **{
+                "web-01": {"terminated": True, "snapshot_taken": True},
+                "web-02": {"terminated": True, "snapshot_taken": True},
+                "cache-01": {"terminated": True, "snapshot_taken": True},
+            }
+        )
         score = task.grade([], state)
         baseline = task.grade([], _make_state())
         # 3 terminated → cost_efficiency = 3/5 * 0.2 = 0.12 vs baseline 0.0
@@ -81,9 +90,11 @@ class TestCloudInfraGrader:
 
     # 6. critical instance terminated without escalation → escalation_discipline missing
     def test_critical_terminated_without_escalation_zero_discipline(self, task):
-        state_without = _make_state(**{
-            "api-01": {"terminated": True, "snapshot_taken": True},
-        })
+        state_without = _make_state(
+            **{
+                "api-01": {"terminated": True, "snapshot_taken": True},
+            }
+        )
         state_without["escalations"] = []
 
         state_with = copy.deepcopy(state_without)

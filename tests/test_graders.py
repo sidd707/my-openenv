@@ -4,6 +4,7 @@ Verifies each grader returns a float in [0.0, 1.0] and is deterministic.
 """
 
 import pytest
+
 from models import ActionRecord
 
 
@@ -20,10 +21,10 @@ def make_record(action_name, was_irreversible=False, was_mistake=False, step=1):
 
 
 class TestFileCleanupGrader:
-
     @pytest.fixture
     def task(self):
         from server.tasks.easy import FileCleanupTask
+
         return FileCleanupTask()
 
     def test_grader_returns_float(self, task):
@@ -114,10 +115,10 @@ class TestFileCleanupGrader:
 
 
 class TestDatabaseMaintenanceGrader:
-
     @pytest.fixture
     def task(self):
         from server.tasks.medium import DatabaseMaintenanceTask
+
         return DatabaseMaintenanceTask()
 
     def test_grader_returns_float(self, task):
@@ -255,10 +256,10 @@ class TestDatabaseMaintenanceGrader:
 
 
 class TestServerMigrationGrader:
-
     @pytest.fixture
     def task(self):
         from server.tasks.hard import ServerMigrationTask
+
         return ServerMigrationTask()
 
     def test_grader_returns_float(self, task):
@@ -291,12 +292,20 @@ class TestServerMigrationGrader:
             "revoke_old_credentials",
         ]
         history = [
-            ActionRecord(action_name="test_new_environment",
-                         was_irreversible=False, was_mistake=False,
-                         step=1, action_params={}),
-            ActionRecord(action_name="switch_traffic",
-                         was_irreversible=False, was_mistake=False,
-                         step=2, action_params={}),
+            ActionRecord(
+                action_name="test_new_environment",
+                was_irreversible=False,
+                was_mistake=False,
+                step=1,
+                action_params={},
+            ),
+            ActionRecord(
+                action_name="switch_traffic",
+                was_irreversible=False,
+                was_mistake=False,
+                step=2,
+                action_params={},
+            ),
         ]
         score = task.grade(history, state)
         assert score == pytest.approx(1.0)
@@ -316,12 +325,20 @@ class TestServerMigrationGrader:
         state["new_environment"]["traffic_switched"] = True
         # switch_traffic BEFORE test_new_environment
         history = [
-            ActionRecord(action_name="switch_traffic",
-                         was_irreversible=False, was_mistake=False,
-                         step=1, action_params={}),
-            ActionRecord(action_name="test_new_environment",
-                         was_irreversible=False, was_mistake=False,
-                         step=2, action_params={}),
+            ActionRecord(
+                action_name="switch_traffic",
+                was_irreversible=False,
+                was_mistake=False,
+                step=1,
+                action_params={},
+            ),
+            ActionRecord(
+                action_name="test_new_environment",
+                was_irreversible=False,
+                was_mistake=False,
+                step=2,
+                action_params={},
+            ),
         ]
         score = task.grade(history, state)
         # downtime_score = 0 (wrong order)
@@ -339,9 +356,7 @@ class TestServerMigrationGrader:
         # escalation_score = min(2/3, 1.0) * 0.1 ≈ 0.0667, data_score = 0.2
         assert score == pytest.approx(0.2667, abs=0.001)
 
-    def test_grader_data_score_zero_when_db_deleted_without_migration(
-        self, task
-    ):
+    def test_grader_data_score_zero_when_db_deleted_without_migration(self, task):
         state = task.get_initial_state()
         state["databases"]["db_primary"]["status"] = "deleted"
         # migrated = False (default)
