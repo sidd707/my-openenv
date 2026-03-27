@@ -1,6 +1,9 @@
 """
 Baseline inference script for SafeAct-Env.
-Runs one episode per task using Azure OpenAI as the agent.
+Runs one episode per task using OpenAI (or Azure OpenAI) as the agent.
+
+    Set OPENAI_BACKEND=openai (default) for standard OpenAI API.
+    Set OPENAI_BACKEND=azure for Azure OpenAI.
 
 Usage:
     # Copy .env.example to .env and fill in your credentials
@@ -34,11 +37,6 @@ from server.tasks.cloud_infra import CloudInfraTask
 
 # ── Configuration ─────────────────────────────────────────────
 
-AZURE_API_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
-AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
-AZURE_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
-AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1")
-
 MAX_STEPS_PER_TASK = 20
 
 _TASK_REGISTRY = {
@@ -52,17 +50,25 @@ _TASK_REGISTRY = {
 # ── LLM client ────────────────────────────────────────────────
 
 
-def _make_client() -> AzureOpenAI:
-    if not AZURE_API_KEY or not AZURE_ENDPOINT:
-        raise EnvironmentError(
-            "AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set. "
-            "Copy .env.example to .env and fill in your credentials."
+def _make_client():
+    backend = os.getenv("OPENAI_BACKEND", "openai").lower()
+    if backend == "azure":
+        if not os.getenv("AZURE_OPENAI_API_KEY") or not os.getenv("AZURE_OPENAI_ENDPOINT"):
+            raise EnvironmentError(
+                "AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set for azure backend."
+            )
+        return AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
         )
-    return AzureOpenAI(
-        api_key=AZURE_API_KEY,
-        azure_endpoint=AZURE_ENDPOINT,
-        api_version=AZURE_API_VERSION,
-    )
+    else:
+        if not os.getenv("OPENAI_API_KEY"):
+            raise EnvironmentError(
+                "OPENAI_API_KEY must be set. Copy .env.example to .env and fill in credentials."
+            )
+        from openai import OpenAI
+        return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # ── Prompt builders ───────────────────────────────────────────
@@ -160,7 +166,7 @@ def _parse_action(content: str) -> AgentAction:
 
 def run_episode(
     task_name: str,
-    client: AzureOpenAI,
+    client,
 ) -> Dict[str, Any]:
     """Run one episode for a task. Returns score, steps, error."""
     print(f"\n[{task_name}] Starting episode...", file=sys.stderr)
@@ -171,6 +177,8 @@ def run_episode(
         episode_id=f"baseline-{task_name}",
     )
 
+    model = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1") if os.getenv("OPENAI_BACKEND", "openai").lower() == "azure" else os.getenv("OPENAI_MODEL", "gpt-4.1")
+
     steps = 0
     messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
 
@@ -179,7 +187,7 @@ def run_episode(
         messages.append({"role": "user", "content": user_prompt})
 
         response = client.chat.completions.create(
-            model=AZURE_DEPLOYMENT,
+            model=model,
             messages=messages,
             temperature=0.0,
             max_tokens=512,
