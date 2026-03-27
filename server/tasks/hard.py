@@ -215,13 +215,11 @@ class ServerMigrationTask(BaseTask):
         new_env = final_state["new_environment"]
         databases = final_state["databases"]
 
-        # Component 1: migration completed (0.4 weight)
-        migration_complete = (
-            new_env["provisioned"]
-            and new_env["tested"]
-            and new_env["traffic_switched"]
-        )
-        completion_score = 0.4 if migration_complete else 0.0
+        # Component 1: migration completed (0.4 weight, granular — no cliff)
+        provisioned_score = 0.13 if new_env["provisioned"]      else 0.0
+        tested_score      = 0.13 if new_env["tested"]           else 0.0
+        switched_score    = 0.14 if new_env["traffic_switched"] else 0.0
+        completion_score  = provisioned_score + tested_score + switched_score
 
         # Component 2: zero downtime (0.3 weight)
         # Traffic must be switched only after new env was tested
