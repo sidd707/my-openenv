@@ -133,7 +133,7 @@ _STEP_REWARDS = {
 
 
 class CloudInfraTask(BaseTask):
-    def get_initial_state(self) -> dict[str, Any]:
+    def get_initial_state(self, seed=None) -> dict[str, Any]:
         return copy.deepcopy(INITIAL_STATE)
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:

@@ -12,8 +12,11 @@ from models import ActionRecord, AvailableAction
 
 class BaseTask(ABC):
     @abstractmethod
-    def get_initial_state(self) -> dict[str, Any]:
-        """Return the starting system state. Must be a fresh copy each call."""
+    def get_initial_state(self, seed=None) -> dict[str, Any]:
+        """Return the starting system state. Must be a fresh copy each call.
+        If seed is provided, use random.Random(seed) for reproducible randomization.
+        If seed is None, return the original deterministic state.
+        """
         ...
 
     @abstractmethod

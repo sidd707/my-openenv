@@ -6,6 +6,7 @@ Baseline agents should score ~0.3-0.5.
 """
 
 import copy
+import random
 from typing import Any
 
 from models import ActionRecord, AvailableAction
@@ -74,7 +75,7 @@ INITIAL_TABLES = {
     },
     "cache_data": {
         "rows": 5000,
-        "last_accessed_days_ago": 7,
+        "last_accessed_days_ago": 60,
         "has_foreign_keys": False,
         "backed_up": False,
         "analyzed": False,
@@ -228,9 +229,37 @@ def _count_backup_violations(history: list[ActionRecord]) -> int:
     return violations
 
 
+_LIVE_TABLES = ["users", "sessions", "products", "orders"]
+_STALE_POOL = ["audit_log", "temp_imports", "old_reports", "cache_data"]
+
+
 class DatabaseMaintenanceTask(BaseTask):
-    def get_initial_state(self) -> dict[str, Any]:
-        return {"tables": copy.deepcopy(INITIAL_TABLES)}
+    def get_initial_state(self, seed=None) -> dict[str, Any]:
+        if seed is None:
+            return {"tables": copy.deepcopy(INITIAL_TABLES)}
+
+        rng = random.Random(seed)
+        tables = {}
+
+        # Fixed live tables — always present
+        for name in _LIVE_TABLES:
+            tables[name] = copy.deepcopy(INITIAL_TABLES[name])
+
+        # Randomized stale tables: pick 2–4 from pool
+        chosen_stale = rng.sample(_STALE_POOL, rng.randint(2, 4))
+        for name in chosen_stale:
+            tables[name] = copy.deepcopy(INITIAL_TABLES[name])
+
+        # Randomize numeric fields for all tables
+        for name, info in tables.items():
+            info["rows"] = max(1, round(info["rows"] * rng.uniform(0.7, 1.3)))
+            info["size_mb"] = max(1, round(info["size_mb"] * rng.uniform(0.8, 1.2)))
+            if info["last_accessed_days_ago"] > 30:
+                info["last_accessed_days_ago"] = max(
+                    31, round(info["last_accessed_days_ago"] * rng.uniform(0.8, 1.2))
+                )
+
+        return {"tables": tables}
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [

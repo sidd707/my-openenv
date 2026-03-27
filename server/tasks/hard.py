@@ -6,6 +6,7 @@ before execution. Baseline agents should score ~0.3-0.5.
 """
 
 import copy
+import random
 from typing import Any
 
 from models import ActionRecord, AvailableAction
@@ -159,8 +160,21 @@ def _check_order(history: list[ActionRecord], action_a: str, action_b: str) -> b
 
 
 class ServerMigrationTask(BaseTask):
-    def get_initial_state(self) -> dict[str, Any]:
-        return copy.deepcopy(INITIAL_STATE)
+    def get_initial_state(self, seed=None) -> dict[str, Any]:
+        state = copy.deepcopy(INITIAL_STATE)
+        if seed is None:
+            return state
+
+        rng = random.Random(seed)
+        state["services"]["service_a"]["snapshot_taken"] = rng.random() < 0.3
+        state["databases"]["db_primary"]["has_snapshot"] = rng.random() < 0.2
+        state["metadata"] = {
+            "traffic_distribution": rng.choice(["80/20", "60/40", "50/50"])
+        }
+        if rng.random() < 0.1:
+            state["services"]["service_b"]["status"] = "degraded"
+
+        return state
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [

@@ -145,7 +145,7 @@ _STEP_REWARDS = {
 
 
 class MedicalTriageTask(BaseTask):
-    def get_initial_state(self) -> dict[str, Any]:
+    def get_initial_state(self, seed=None) -> dict[str, Any]:
         return {"patients": copy.deepcopy(INITIAL_PATIENTS)}
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:

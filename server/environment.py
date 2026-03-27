@@ -124,7 +124,7 @@ class IrreversibleActionEnv(Environment):
         self._task_name = task_name
         self._max_steps = config["max_steps"]
         self._task = _TASK_REGISTRY[task_name]()
-        self._current_state = self._task.get_initial_state()
+        self._current_state = self._task.get_initial_state(seed=seed)
         self._pending_escalations = set()
         self._episode_state = EpisodeState(
             episode_id=episode_id or str(uuid.uuid4()),
