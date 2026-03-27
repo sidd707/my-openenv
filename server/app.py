@@ -1,6 +1,6 @@
 """
 FastAPI application entry point for SafeAct-Env.
-Uses openenv-core's create_app for standard endpoints + Gradio web UI.
+Uses openenv-core's create_app for standard endpoints + static demo UI.
 Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
@@ -8,19 +8,22 @@ import json
 import os
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+import uuid
+from pathlib import Path
+from typing import Any
 
 from fastapi import HTTPException
+from fastapi.responses import HTMLResponse
+from openenv.core.env_server.http_server import create_app
 from pydantic import BaseModel
 
-from openenv.core.env_server.http_server import create_app
-from models import AgentAction, ActionRecord, SystemObservation
+from models import ActionRecord, AgentAction, SystemObservation
 from server.environment import IrreversibleActionEnv
+from server.tasks.cloud_infra import CloudInfraTask
 from server.tasks.easy import FileCleanupTask
-from server.tasks.medium import DatabaseMaintenanceTask
 from server.tasks.hard import ServerMigrationTask
 from server.tasks.medical import MedicalTriageTask
-from server.tasks.cloud_infra import CloudInfraTask
+from server.tasks.medium import DatabaseMaintenanceTask
 
 # ── Task registry for grader endpoint ────────────────────────
 _GRADER_REGISTRY = {
@@ -62,12 +65,16 @@ _TASK_META = {
 _ACTION_SCHEMA = {
     "required": ["action_name", "parameters", "reasoning"],
     "properties": {
-        "action_name": {"type": "string",
-                        "description": "Name of the action to execute"},
-        "parameters":  {"type": "object",
-                        "description": "Action-specific parameters"},
-        "reasoning":   {"type": "string", "minLength": 1,
-                        "description": "Agent must explain its choice"},
+        "action_name": {
+            "type": "string",
+            "description": "Name of the action to execute",
+        },
+        "parameters": {"type": "object", "description": "Action-specific parameters"},
+        "reasoning": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Agent must explain its choice",
+        },
     },
 }
 
@@ -80,13 +87,96 @@ app = create_app(
     max_concurrent_envs=4,
 )
 
+# ── Replace stateless /reset and /step with session-aware versions ──
+# The openenv-core creates a fresh env per request which breaks multi-step
+# episodes over HTTP. We store envs keyed by episode_id.
+_ENV_SESSIONS: dict[str, IrreversibleActionEnv] = {}
+
+# Remove the default /reset and /step routes so ours take precedence
+app.router.routes = [
+    r
+    for r in app.router.routes
+    if getattr(r, "path", None) not in ("/reset", "/step", "/state")
+]
+
+
+class ResetRequest(BaseModel):
+    task_name: str = "easy"
+    episode_id: str | None = None
+    seed: int | None = None
+
+
+class StepRequest(BaseModel):
+    action: dict[str, Any]
+    episode_id: str | None = None
+
+
+def _serialize_observation(obs: SystemObservation) -> dict:
+    data = obs.model_dump()
+    return {
+        "observation": data,
+        "reward": data.get("reward", 0.0),
+        "done": data.get("done", False),
+    }
+
+
+@app.post("/reset")
+def reset_episode(request: ResetRequest):
+    episode_id = request.episode_id or str(uuid.uuid4())
+    env = IrreversibleActionEnv()
+    obs = env.reset(
+        seed=request.seed, episode_id=episode_id, task_name=request.task_name
+    )
+    _ENV_SESSIONS[episode_id] = env
+    return _serialize_observation(obs)
+
+
+@app.post("/step")
+def step_episode(request: StepRequest):
+    # Find env by episode_id, or fall back to most recent session
+    env = None
+    if request.episode_id and request.episode_id in _ENV_SESSIONS:
+        env = _ENV_SESSIONS[request.episode_id]
+    elif _ENV_SESSIONS:
+        env = next(reversed(_ENV_SESSIONS.values()))
+
+    if env is None:
+        raise HTTPException(
+            status_code=400, detail="No active episode. Call /reset first."
+        )
+
+    action = AgentAction(**request.action)
+    obs = env.step(action)
+
+    # Clean up completed episodes
+    if getattr(obs, "done", False):
+        _ENV_SESSIONS.pop(request.episode_id, None)
+
+    return _serialize_observation(obs)
+
+
+@app.get("/state")
+def get_state():
+    if _ENV_SESSIONS:
+        env = next(reversed(_ENV_SESSIONS.values()))
+        return env.state
+    return {}
+
+
+@app.get("/demo", response_class=HTMLResponse)
+def demo_ui():
+    return HTMLResponse(
+        content=(Path(__file__).parent.parent / "static" / "demo.html").read_text()
+    )
+
 
 # ── Request/Response models ───────────────────────────────────
 
+
 class GraderRequest(BaseModel):
     task_name: str
-    history: List[Dict[str, Any]]
-    final_state: Dict[str, Any]
+    history: list[dict[str, Any]]
+    final_state: dict[str, Any]
 
 
 class GraderResponse(BaseModel):
@@ -94,27 +184,30 @@ class GraderResponse(BaseModel):
 
 
 class BaselineRequest(BaseModel):
-    task_name: Optional[str] = None
+    task_name: str | None = None
 
 
 class BaselineResponse(BaseModel):
-    scores: Dict[str, Optional[float]]
+    scores: dict[str, float | None]
 
 
 # ── Hackathon-required endpoints ──────────────────────────────
+
 
 @app.get("/tasks")
 def get_tasks():
     """List all tasks with their action schemas."""
     tasks = []
     for name, meta in _TASK_META.items():
-        tasks.append({
-            "name": name,
-            "description": meta["description"],
-            "max_steps": meta["max_steps"],
-            "difficulty": meta["difficulty"],
-            "action_schema": _ACTION_SCHEMA,
-        })
+        tasks.append(
+            {
+                "name": name,
+                "description": meta["description"],
+                "max_steps": meta["max_steps"],
+                "difficulty": meta["difficulty"],
+                "action_schema": _ACTION_SCHEMA,
+            }
+        )
     return {"tasks": tasks}
 
 
@@ -125,7 +218,7 @@ def run_grader(request: GraderRequest):
         raise HTTPException(
             status_code=400,
             detail=f"Unknown task: {request.task_name!r}. "
-                   f"Valid: {list(_GRADER_REGISTRY)}",
+            f"Valid: {list(_GRADER_REGISTRY)}",
         )
     task = _GRADER_REGISTRY[request.task_name]()
     history = [ActionRecord(**r) for r in request.history]
@@ -136,17 +229,15 @@ def run_grader(request: GraderRequest):
 @app.post("/baseline", response_model=BaselineResponse)
 def run_baseline(request: BaselineRequest):
     """Trigger baseline agent run via subprocess."""
-    tasks = (
-        [request.task_name]
-        if request.task_name
-        else list(_GRADER_REGISTRY.keys())
-    )
+    tasks = [request.task_name] if request.task_name else list(_GRADER_REGISTRY.keys())
 
     # Early exit if no LLM credentials are available
-    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("AZURE_OPENAI_API_KEY"):
+    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get(
+        "AZURE_OPENAI_API_KEY"
+    ):
         return BaselineResponse(scores={t: None for t in tasks})
 
-    scores: Dict[str, Optional[float]] = {}
+    scores: dict[str, float | None] = {}
 
     for task in tasks:
         try:
@@ -166,6 +257,7 @@ def run_baseline(request: BaselineRequest):
 
 def main():
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
