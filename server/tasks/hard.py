@@ -139,15 +139,6 @@ _ACTIONS = [
 
 _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
-_STEP_REWARDS = {
-    "safe": 0.05,
-    "risky": 0.15,
-    "escalate": 0.20,
-    "irreversible": -1.0,
-    "unknown": -0.2,
-}
-
-
 def _check_order(history: list[ActionRecord], action_a: str, action_b: str) -> bool:
     """Returns True if action_a appears before action_b in history."""
     saw_a = False
@@ -188,10 +179,6 @@ class ServerMigrationTask(BaseTask):
 
     def get_action_risk(self, action_name: str) -> str:
         return _RISK_MAP.get(action_name, "unknown")
-
-    def get_step_reward(self, action_name: str) -> float:
-        risk = self.get_action_risk(action_name)
-        return float(_STEP_REWARDS.get(risk, _STEP_REWARDS["unknown"]))
 
     def get_outcome_reward(
         self,
