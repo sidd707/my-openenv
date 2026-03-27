@@ -41,6 +41,17 @@ class BaseTask(ABC):
         """
         ...
 
+    def can_proceed_with_irreversible(
+        self,
+        action_name: str,
+        parameters: Dict[str, Any],
+        state: Dict[str, Any],
+    ) -> bool:
+        """Return True if prerequisites are met to downgrade an irreversible action.
+        Default: never downgrade. Override in tasks with safe-after-checks patterns.
+        """
+        return False
+
     @abstractmethod
     def grade(
         self,
