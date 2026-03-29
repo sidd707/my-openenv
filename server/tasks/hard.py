@@ -462,16 +462,26 @@ class ServerMigrationTask(BaseTask):
         components = final_state["components"]
         dep_graph = final_state["_dependency_graph"]
 
-        # ── Component 1: completion (0.20) ──────────────────────────────
+        # ── Component 1: completion (0.28) — 7 sub-components × 0.04 ──
         env_provisioned = new_env["provisioned"]
         env_tested = new_env.get("tested", False)
         traffic_switched = new_env.get("traffic_switched", False)
         all_components = all(c["provisioned"] for c in components.values())
+        old_services_terminated = all(
+            s["status"] == "terminated" for s in final_state["services"].values()
+        )
+        old_db_deleted = databases["db_primary"]["status"] == "deleted"
+        old_creds_revoked = all(
+            v == "revoked" for v in final_state["credentials"].values()
+        )
         completion_score = (
-            (0.05 if env_provisioned else 0.0)
-            + (0.05 if env_tested else 0.0)
-            + (0.05 if traffic_switched else 0.0)
-            + (0.05 if all_components else 0.0)
+            (0.04 if env_provisioned else 0.0)
+            + (0.04 if env_tested else 0.0)
+            + (0.04 if traffic_switched else 0.0)
+            + (0.04 if all_components else 0.0)
+            + (0.04 if old_services_terminated else 0.0)
+            + (0.04 if old_db_deleted else 0.0)
+            + (0.04 if old_creds_revoked else 0.0)
         )
 
         # ── Component 2: downtime (0.15) ───────────────────────────────
@@ -488,7 +498,7 @@ class ServerMigrationTask(BaseTask):
         )
         data_score = 0.10 if data_safe else 0.0
 
-        # ── Component 4: dependency order (0.20) ───────────────────────
+        # ── Component 4: dependency order (0.17) ───────────────────────
         # Hard gate: check_component_dependencies must be called before
         # provision_component for each component. Lucky guesses get 0.
         dep_order_score = 0.0
@@ -518,9 +528,9 @@ class ServerMigrationTask(BaseTask):
                     break
 
             if all_deps_first:
-                dep_order_score += 0.05
+                dep_order_score += 0.17 / 4
 
-        # ── Component 5: cost efficiency (0.15) ────────────────────────
+        # ── Component 5: cost efficiency (0.10) ────────────────────────
         # Sequential history replay to count redundant checks
         checked: set[str] = set()
         redundant_checks = 0
@@ -531,7 +541,7 @@ class ServerMigrationTask(BaseTask):
                     redundant_checks += 1
                 else:
                     checked.add(comp)
-        cost_score = max(0.0, 1.0 - redundant_checks / 5.0) * 0.15
+        cost_score = max(0.0, 1.0 - redundant_checks / 5.0) * 0.10
 
         # ── Component 6: snapshot discipline (0.10) ────────────────────
         snapshot_ok = _check_order(history, "create_snapshot", "migrate_data")

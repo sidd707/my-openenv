@@ -419,9 +419,9 @@ class TestHardTaskIntegration:
         assert "services" in obs.current_state
         assert "new_environment" in obs.current_state
 
-    def test_hard_task_max_steps_is_15(self, env):
+    def test_hard_task_max_steps_is_20(self, env):
         obs = env.reset(task_name="hard")
-        assert obs.steps_remaining == 15
+        assert obs.steps_remaining == 20
 
     def test_terminate_without_escalation_ends_episode(self, env):
         from models import AgentAction
