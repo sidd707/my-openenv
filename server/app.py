@@ -4,7 +4,9 @@ Uses openenv-core's create_app for standard endpoints + static demo UI.
 Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
+import importlib.metadata
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -81,6 +83,16 @@ app.router.routes = [
     for r in app.router.routes
     if getattr(r, "path", None) not in ("/reset", "/step", "/state")
 ]
+
+
+_VERSION = importlib.metadata.version("my-openenv")
+
+logger = logging.getLogger(__name__)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "environment": "safeact-env", "version": _VERSION}
 
 
 class ResetRequest(BaseModel):
@@ -235,7 +247,8 @@ def run_baseline(request: BaselineRequest):
             )
             data = json.loads(result.stdout.strip())
             scores[task] = data["score"]
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, Exception):
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError) as exc:
+            logger.warning("Baseline run failed for task %s: %s", task, exc)
             scores[task] = None
 
     return BaselineResponse(scores=scores)

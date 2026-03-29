@@ -1,7 +1,11 @@
-.venv/
-__pycache__/
+.git
+__pycache__
 *.pyc
+.pytest_cache
 .env
-.ruff_cache/
-.pytest_cache/
 tests/
+scripts/
+*.md
+.coverage
+.venv/
+.ruff_cache/

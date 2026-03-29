@@ -17,10 +17,17 @@ Progress: printed to stderr.
 
 import argparse
 import json
+import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s %(name)s: %(message)s",
+    stream=sys.stderr,
+)
+logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
 
@@ -28,14 +35,8 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from openai import AzureOpenAI
 
+from safeact_env.runner import run_all_tasks, run_episode
 from server.environment import IrreversibleActionEnv
-from shared.llm_utils import (
-    MAX_STEPS_PER_TASK,
-    SYSTEM_PROMPT,
-    TASK_REGISTRY,
-    build_user_prompt,
-    parse_action,
-)
 
 # ── LLM client ────────────────────────────────────────────────
 
@@ -61,61 +62,11 @@ def _make_client():
         return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# ── Episode runner ────────────────────────────────────────────
-
-
-def run_episode(
-    task_name: str,
-    client,
-) -> Dict[str, Any]:
-    """Run one episode for a task. Returns score, steps, error."""
-    print(f"\n[{task_name}] Starting episode...", file=sys.stderr)
-
-    env = IrreversibleActionEnv()
-    obs = env.reset(
-        task_name=task_name,
-        episode_id=f"baseline-{task_name}",
-    )
-
-    model = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1") if os.getenv("OPENAI_BACKEND", "openai").lower() == "azure" else os.getenv("OPENAI_MODEL", "gpt-4.1")
-
-    steps = 0
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-
-    while not obs.done and steps < MAX_STEPS_PER_TASK:
-        user_prompt = build_user_prompt(obs)
-        messages.append({"role": "user", "content": user_prompt})
-
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.0,
-            max_tokens=512,
-        )
-        content = response.choices[0].message.content or ""
-        messages.append({"role": "assistant", "content": content})
-
-        action = parse_action(content)
-        print(
-            f"[{task_name}] step {steps + 1}: {action.action_name}",
-            file=sys.stderr,
-        )
-
-        obs = env.step(action)
-        steps += 1
-
-    # Grade the episode using the task grader directly
-    task_obj = TASK_REGISTRY[task_name]()
-    score = task_obj.grade(
-        history=env.state.history,
-        final_state=env._current_state,
-    )
-
-    print(
-        f"[{task_name}] Done. steps={steps} score={score:.3f}",
-        file=sys.stderr,
-    )
-    return {"score": round(score, 4), "steps": steps, "error": None}
+def _get_model() -> str:
+    backend = os.getenv("OPENAI_BACKEND", "openai").lower()
+    if backend == "azure":
+        return os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1")
+    return os.getenv("OPENAI_MODEL", "gpt-4.1")
 
 
 # ── Main ──────────────────────────────────────────────────────
@@ -130,23 +81,24 @@ def main() -> None:
     args = parser.parse_args()
 
     client = _make_client()
+    model = _get_model()
 
     task_names = [args.task] if args.task else ["easy", "medium", "hard", "medical", "cloud_infra"]
-    results = {}
 
-    for task_name in task_names:
+    if args.task:
+        env = IrreversibleActionEnv()
+        results = {}
         try:
-            results[task_name] = run_episode(task_name, client)
+            results[args.task] = run_episode(env, args.task, client, model)
         except Exception as e:
-            print(f"[{task_name}] ERROR: {e}", file=sys.stderr)
-            results[task_name] = {
-                "score": 0.0,
-                "steps": 0,
-                "error": str(e),
-            }
+            logger.error("[%s] Episode failed: %s: %s", args.task, type(e).__name__, e)
+            results[args.task] = {"score": 0.0, "steps": 0, "error": str(e)}
+    else:
+        results = run_all_tasks(
+            IrreversibleActionEnv, client, model, task_names=task_names
+        )
 
     if args.json_mode:
-        # Always output {"score": float} — used by /baseline subprocess calls.
         if args.task:
             score = results[args.task]["score"]
         else:

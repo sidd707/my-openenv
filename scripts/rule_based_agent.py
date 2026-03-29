@@ -10,8 +10,16 @@ Progress: printed to stderr.
 """
 
 import json
+import logging
 import sys
 from typing import Any, Dict
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s %(name)s: %(message)s",
+    stream=sys.stderr,
+)
+logger = logging.getLogger(__name__)
 
 from models import AgentAction
 from server.environment import IrreversibleActionEnv
@@ -273,7 +281,7 @@ class RuleBasedAgent:
 
 def run_episode(task_name: str) -> Dict[str, Any]:
     """Run one episode for a task. Returns score, steps, error."""
-    print(f"\n[{task_name}] Starting episode...", file=sys.stderr)
+    logger.info("[%s] Starting episode...", task_name)
 
     env = IrreversibleActionEnv()
     obs = env.reset(
@@ -286,10 +294,7 @@ def run_episode(task_name: str) -> Dict[str, Any]:
 
     while not obs.done and steps < 30:
         action = agent.choose_action(obs)
-        print(
-            f"[{task_name}] step {steps + 1}: {action.action_name}",
-            file=sys.stderr,
-        )
+        logger.info("[%s] step %d: %s", task_name, steps + 1, action.action_name)
         obs = env.step(action)
         steps += 1
 
@@ -300,10 +305,7 @@ def run_episode(task_name: str) -> Dict[str, Any]:
         final_state=env._current_state,
     )
 
-    print(
-        f"[{task_name}] Done. steps={steps} score={score:.3f}",
-        file=sys.stderr,
-    )
+    logger.info("[%s] Done. steps=%d score=%.3f", task_name, steps, score)
     return {"score": round(score, 4), "steps": steps, "error": None}
 
 
@@ -317,7 +319,7 @@ def main() -> None:
         try:
             results[task_name] = run_episode(task_name)
         except Exception as e:
-            print(f"[{task_name}] ERROR: {e}", file=sys.stderr)
+            logger.error("[%s] Episode failed: %s: %s", task_name, type(e).__name__, e)
             results[task_name] = {
                 "score": 0.0,
                 "steps": 0,

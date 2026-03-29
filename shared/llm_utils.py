@@ -4,6 +4,7 @@ Contains prompts, parsing, and constants used by both inference.py and scripts/b
 """
 
 import json
+import logging
 
 from models import AgentAction
 from server.tasks.cloud_infra import CloudInfraTask
@@ -11,6 +12,8 @@ from server.tasks.easy import FileCleanupTask
 from server.tasks.hard import ServerMigrationTask
 from server.tasks.medical import MedicalTriageTask
 from server.tasks.medium import DatabaseMaintenanceTask
+
+logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────
 
@@ -110,6 +113,7 @@ def parse_action(content: str) -> AgentAction:
             reasoning=data.get("reasoning", "LLM chose this action"),
         )
     except Exception:
+        logger.warning("Failed to parse LLM response, falling back to escalate: %.200s", content)
         return AgentAction(
             action_name="escalate_to_human",
             parameters={"reason": "Failed to parse LLM response"},
