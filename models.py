@@ -6,13 +6,18 @@ Internal only: ActionRecord, EpisodeState
                 (never include internal models in agent-visible responses)
 """
 
+from typing import Any
+
 from openenv.core.env_server.types import (
     Action as OpenEnvAction,
+)
+from openenv.core.env_server.types import (
     Observation as OpenEnvObservation,
+)
+from openenv.core.env_server.types import (
     State as OpenEnvState,
 )
 from pydantic import BaseModel, Field, field_validator
-from typing import Dict, List, Any, Optional
 
 
 class AvailableAction(BaseModel):
@@ -20,7 +25,7 @@ class AvailableAction(BaseModel):
 
     name: str
     description: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
 
     model_config = {"extra": "forbid"}
 
@@ -32,14 +37,16 @@ class AgentAction(OpenEnvAction):
     """
 
     action_name: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     reasoning: str
 
     @field_validator("reasoning")
     @classmethod
     def reasoning_must_not_be_empty(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError("reasoning cannot be empty — agent must explain its choice")
+            raise ValueError(
+                "reasoning cannot be empty — agent must explain its choice"
+            )
         return v
 
 
@@ -50,7 +57,7 @@ class ActionRecord(BaseModel):
     was_irreversible: bool
     was_mistake: bool
     step: int
-    action_params: Dict[str, Any] = Field(default_factory=dict)
+    action_params: dict[str, Any] = Field(default_factory=dict)
 
 
 class EpisodeState(OpenEnvState):
@@ -63,7 +70,7 @@ class EpisodeState(OpenEnvState):
     irreversible_mistakes: int = 0
     task_complete: bool = False
     total_reward: float = 0.0
-    history: List[ActionRecord] = Field(default_factory=list)
+    history: list[ActionRecord] = Field(default_factory=list)
 
 
 class SystemObservation(OpenEnvObservation):
@@ -76,8 +83,8 @@ class SystemObservation(OpenEnvObservation):
     """
 
     task_description: str
-    current_state: Dict[str, Any]
-    available_actions: List[AvailableAction]
-    action_history: List[str]
+    current_state: dict[str, Any]
+    available_actions: list[AvailableAction]
+    action_history: list[str]
     steps_remaining: int
     last_action_result: str
