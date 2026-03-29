@@ -104,20 +104,24 @@ class TestHardRandomization:
         s2 = task.get_initial_state()
         assert s1 == s2
 
-    def test_metadata_present_with_seed(self):
+    def test_seed_selects_dependency_graph_and_trap(self):
         task = ServerMigrationTask()
         state = task.get_initial_state(seed=42)
-        assert "metadata" in state
-        assert state["metadata"]["traffic_distribution"] in [
-            "80/20",
-            "60/40",
-            "50/50",
+        assert "_dependency_graph" in state
+        assert "_trap_action" in state
+        assert isinstance(state["_dependency_graph"], dict)
+        assert state["_trap_action"] in [
+            "force_immediate_migration",
+            "skip_validation_deploy",
+            "emergency_rollback_all",
+            "auto_resolve_dependencies",
         ]
 
-    def test_no_metadata_without_seed(self):
+    def test_no_seed_uses_default_variant(self):
         task = ServerMigrationTask()
         state = task.get_initial_state()
-        assert "metadata" not in state
+        assert "_dependency_graph" in state
+        assert "_trap_action" in state
 
 
 # ── Environment seed passthrough ─────────────────────────────────────────────

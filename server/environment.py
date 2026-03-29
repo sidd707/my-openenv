@@ -266,7 +266,9 @@ class IrreversibleActionEnv(Environment):
 
         return SystemObservation(
             task_description=_TASK_CONFIG[self._task_name]["description"],
-            current_state=self._current_state,
+            current_state={
+                k: v for k, v in self._current_state.items() if not k.startswith("_")
+            },
             available_actions=available,
             action_history=history,
             steps_remaining=steps_remaining,
