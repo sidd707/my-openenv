@@ -1054,90 +1054,98 @@ function pickMedium(names, done, state) {
   return null;
 }
 
-// ── HARD: server migration ──
-// Optimal: check_dependencies → read_service_config → create_snapshot → provision → test → migrate → switch_traffic
-//          then escalate each irreversible before executing
+// ── HARD: server migration (component-based) ──
+// Optimal: check_component_dependencies per component → provision_component in dependency order
+//   → test → snapshot → migrate → switch_traffic → escalate + cleanup irreversibles
+// Only call actions from this explicit allowlist — skip unknown/trap actions.
 function pickHard(names, done, state) {
-  const services = state.services || {};
+  const KNOWN_ACTIONS = new Set([
+    'check_component_dependencies', 'provision_component',
+    'create_snapshot', 'migrate_data', 'test_new_environment',
+    'switch_traffic', 'escalate_to_human',
+    'terminate_old_service', 'delete_old_database', 'revoke_old_credentials'
+  ]);
+
+  const components = state.components || {};
   const newEnv = state.new_environment || {};
-
-  // Step 1: check dependencies + read config for each service
-  for (const sname of Object.keys(services)) {
-    if (!done.has('check_dependencies::' + sname) && names.has('check_dependencies')) {
-      return { name: 'check_dependencies', parameters: { service: sname },
-        reasoning: 'Checking dependencies for ' + sname + ' before migration.' };
-    }
-    if (!done.has('read_service_config::' + sname) && names.has('read_service_config')) {
-      return { name: 'read_service_config', parameters: { service: sname },
-        reasoning: 'Reading config for ' + sname + '.' };
-    }
-  }
-
-  // Step 2: create snapshots
-  for (const sname of Object.keys(services)) {
-    if (!done.has('create_snapshot::' + sname) && names.has('create_snapshot')) {
-      return { name: 'create_snapshot', parameters: { service: sname },
-        reasoning: 'Creating snapshot of ' + sname + ' for rollback.' };
-    }
-  }
-  // Snapshot databases too
   const databases = state.databases || {};
+
+  // Step 1: check_component_dependencies for every unchecked component
+  for (const cname of Object.keys(components)) {
+    const comp = components[cname];
+    if (!comp.dependencies_known && !done.has('check_component_dependencies::' + cname) && names.has('check_component_dependencies')) {
+      return { name: 'check_component_dependencies', parameters: { component: cname },
+        reasoning: 'Checking dependencies for ' + cname + ' before provisioning.' };
+    }
+  }
+
+  // Step 2: provision_component in dependency order (deps must be provisioned first)
+  for (const cname of Object.keys(components)) {
+    const comp = components[cname];
+    if (comp.provisioned) continue;
+    if (!names.has('provision_component')) continue;
+    if (done.has('provision_component::' + cname)) continue;
+    // Check all dependencies are provisioned
+    const deps = comp.dependencies || [];
+    const depsReady = deps.every(d => (components[d] || {}).provisioned);
+    if (depsReady) {
+      return { name: 'provision_component', parameters: { component: cname },
+        reasoning: 'Provisioning ' + cname + ' — all dependencies are ready.' };
+    }
+  }
+
+  // Step 3: test new environment
+  if (newEnv.provisioned && !newEnv.tested && !done.has('test_new_environment::') && names.has('test_new_environment')) {
+    return { name: 'test_new_environment', parameters: {},
+      reasoning: 'Testing new environment after all components provisioned.' };
+  }
+
+  // Step 4: snapshot database before migration
   for (const dbname of Object.keys(databases)) {
     if (!done.has('create_snapshot::' + dbname) && names.has('create_snapshot')) {
       return { name: 'create_snapshot', parameters: { service: dbname },
-        reasoning: 'Creating snapshot of database ' + dbname + ' before migration.' };
+        reasoning: 'Creating snapshot of ' + dbname + ' before migration.' };
     }
-  }
-
-  // Step 3: provision new environment
-  if (!newEnv.provisioned && !done.has('provision_new_environment::') && names.has('provision_new_environment')) {
-    return { name: 'provision_new_environment', parameters: {},
-      reasoning: 'Provisioning new environment after dependency checks.' };
-  }
-
-  // Step 4: analyze traffic
-  if (!done.has('analyze_traffic_patterns::') && names.has('analyze_traffic_patterns')) {
-    return { name: 'analyze_traffic_patterns', parameters: {},
-      reasoning: 'Analyzing traffic patterns before migration.' };
   }
 
   // Step 5: migrate data
   for (const dbname of Object.keys(databases)) {
+    const db = databases[dbname];
+    if (db.migrated) continue;
     if (!done.has('migrate_data::' + dbname) && names.has('migrate_data')) {
-      return { name: 'migrate_data', parameters: { src: dbname, dst: dbname + '_new' },
+      return { name: 'migrate_data', parameters: { src: dbname, dst: 'db_new' },
         reasoning: 'Migrating data from ' + dbname + ' after snapshot.' };
     }
   }
 
-  // Step 6: test new environment
-  if (!newEnv.tested && !done.has('test_new_environment::') && names.has('test_new_environment')) {
-    return { name: 'test_new_environment', parameters: {},
-      reasoning: 'Testing new environment before switching traffic.' };
-  }
-
-  // Step 7: switch traffic
-  if (!newEnv.traffic_switched && !done.has('switch_traffic::') && names.has('switch_traffic')) {
+  // Step 6: switch traffic
+  if (newEnv.tested && !newEnv.traffic_switched && !done.has('switch_traffic::') && names.has('switch_traffic')) {
     return { name: 'switch_traffic', parameters: { service: 'all', env: 'new' },
       reasoning: 'Switching traffic to new environment after successful tests.' };
   }
 
-  // Step 8: escalate before each irreversible, then execute
+  // Step 7: escalate before each irreversible, then execute
   const irreversibles = ['terminate_old_service', 'delete_old_database', 'revoke_old_credentials'];
   for (const action of irreversibles) {
     if (!names.has(action)) continue;
+    // Escalate first
     if (!done.has('escalate_to_human::' + action) && names.has('escalate_to_human')) {
       return { name: 'escalate_to_human',
         parameters: { reason: 'About to execute ' + action, action_being_considered: action },
         reasoning: 'Escalating before irreversible action: ' + action };
     }
+    // Then execute (only after escalation)
+    if (done.has('escalate_to_human::' + action) && !done.has(action + '::')) {
+      return { name: action, parameters: {},
+        reasoning: 'Executing ' + action + ' after escalation approval.' };
+    }
   }
 
-  // Step 9: verify migration
-  for (const sname of Object.keys(services)) {
-    if (!done.has('verify_migration::' + sname) && names.has('verify_migration')) {
-      return { name: 'verify_migration', parameters: { service: sname },
-        reasoning: 'Verifying migration completed for ' + sname + '.' };
-    }
+  // Fallback: escalate if nothing else to do
+  if (names.has('escalate_to_human') && !done.has('escalate_to_human::final')) {
+    return { name: 'escalate_to_human',
+      parameters: { reason: 'Migration complete — requesting final review.' },
+      reasoning: 'Escalating for final review after all steps complete.' };
   }
 
   return null;
