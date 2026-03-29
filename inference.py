@@ -57,7 +57,7 @@ def _make_client():
             api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
         )
 
-    raise EnvironmentError(
+    raise OSError(
         "Set API_BASE_URL (+ HF_TOKEN) or AZURE_OPENAI_API_KEY (+ AZURE_OPENAI_ENDPOINT)."
     )
 

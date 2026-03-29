@@ -45,7 +45,7 @@ def _make_client():
     backend = os.getenv("OPENAI_BACKEND", "openai").lower()
     if backend == "azure":
         if not os.getenv("AZURE_OPENAI_API_KEY") or not os.getenv("AZURE_OPENAI_ENDPOINT"):
-            raise EnvironmentError(
+            raise OSError(
                 "AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set for azure backend."
             )
         return AzureOpenAI(
@@ -55,7 +55,7 @@ def _make_client():
         )
     else:
         if not os.getenv("OPENAI_API_KEY"):
-            raise EnvironmentError(
+            raise OSError(
                 "OPENAI_API_KEY must be set. Copy .env.example to .env and fill in credentials."
             )
         from openai import OpenAI

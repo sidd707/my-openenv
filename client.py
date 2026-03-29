@@ -3,9 +3,10 @@ WebSocket client for SafeAct-Env.
 Subclasses EnvClient for typed interactions with the environment server.
 """
 
-from openenv.core.env_client import EnvClient
 from openenv.core.client_types import StepResult
-from models import AgentAction, SystemObservation, EpisodeState
+from openenv.core.env_client import EnvClient
+
+from models import AgentAction, EpisodeState, SystemObservation
 
 
 class SafeActClient(EnvClient[AgentAction, SystemObservation, EpisodeState]):

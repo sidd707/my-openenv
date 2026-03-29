@@ -12,7 +12,7 @@ Progress: printed to stderr.
 import json
 import logging
 import sys
-from typing import Any, Dict
+from typing import Any
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 from models import AgentAction
 from server.environment import IrreversibleActionEnv
+from server.tasks.cloud_infra import CloudInfraTask
 from server.tasks.easy import FileCleanupTask
-from server.tasks.medium import DatabaseMaintenanceTask
 from server.tasks.hard import ServerMigrationTask
 from server.tasks.medical import MedicalTriageTask
-from server.tasks.cloud_infra import CloudInfraTask
+from server.tasks.medium import DatabaseMaintenanceTask
 
 # ── Task registry ────────────────────────────────────────────
 
@@ -279,7 +279,7 @@ class RuleBasedAgent:
 # ── Episode runner ───────────────────────────────────────────
 
 
-def run_episode(task_name: str) -> Dict[str, Any]:
+def run_episode(task_name: str) -> dict[str, Any]:
     """Run one episode for a task. Returns score, steps, error."""
     logger.info("[%s] Starting episode...", task_name)
 
