@@ -345,7 +345,9 @@ class FileCleanupTask(BaseTask):
         freed_mb = sum(
             info["size_mb"]
             for info in files.values()
-            if not info["important"] and (info["deleted"] or info["archived"])
+            if not info["important"]
+            and (info["deleted"] or info["archived"])
+            and info["metadata_read"]
         )
         total_freeable = final_state.get("total_freeable_mb", _TOTAL_FREEABLE_MB)
         space_score = min(freed_mb / total_freeable, 1.0) * 0.4
