@@ -58,6 +58,7 @@ class ActionRecord(BaseModel):
     was_mistake: bool
     step: int
     action_params: dict[str, Any] = Field(default_factory=dict)
+    action_result: str = ""
 
 
 class EpisodeState(OpenEnvState):
@@ -85,6 +86,6 @@ class SystemObservation(OpenEnvObservation):
     task_description: str
     current_state: dict[str, Any]
     available_actions: list[AvailableAction]
-    action_history: list[str]
+    action_history: list[dict[str, Any]]
     steps_remaining: int
     last_action_result: str

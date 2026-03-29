@@ -207,7 +207,11 @@ class FileCleanupTask(BaseTask):
             total_freeable = sum(
                 f["size_mb"] for f in files.values() if not f["important"]
             )
-            return {"files": files, "total_freeable_mb": total_freeable}
+            return {
+                "files": files,
+                "total_freeable_mb": total_freeable,
+                "_list_dir_uses": 0,
+            }
 
         rng = random.Random(seed)
         files = {}
@@ -238,7 +242,11 @@ class FileCleanupTask(BaseTask):
                 )
 
         total_freeable = sum(f["size_mb"] for f in files.values() if not f["important"])
-        return {"files": files, "total_freeable_mb": total_freeable}
+        return {
+            "files": files,
+            "total_freeable_mb": total_freeable,
+            "_list_dir_uses": 0,
+        }
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [
@@ -289,7 +297,9 @@ class FileCleanupTask(BaseTask):
             return 0.0
 
         if action_name == "list_directory":
-            return 0.05
+            if state_after.get("_list_dir_uses", 0) <= 3:
+                return 0.05
+            return 0.0
 
         if action_name == "escalate_to_human":
             return 0.1
@@ -326,6 +336,9 @@ class FileCleanupTask(BaseTask):
         elif action_name == "delete_all_in_directory":
             for file_info in files.values():
                 file_info["deleted"] = True
+
+        elif action_name == "list_directory":
+            state["_list_dir_uses"] = state.get("_list_dir_uses", 0) + 1
 
         return state
 

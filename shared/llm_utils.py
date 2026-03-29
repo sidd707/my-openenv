@@ -82,7 +82,11 @@ def build_user_prompt(obs) -> str:
         f"  - {a.name}: {a.description}" for a in obs.available_actions
     )
     history_str = (
-        "\n".join(obs.action_history)
+        "\n".join(
+            f"step {e['step']}: {e['action']}"
+            f"({e['params']}) -> {e['result']}"
+            for e in obs.action_history
+        )
         if obs.action_history
         else "No actions taken yet"
     )

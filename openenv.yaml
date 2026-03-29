@@ -93,7 +93,17 @@ observation_schema:
     action_history:
       type: array
       items:
-        type: string
+        type: object
+        required: [step, action, params, result]
+        properties:
+          step:
+            type: integer
+          action:
+            type: string
+          params:
+            type: object
+          result:
+            type: string
     steps_remaining:
       type: integer
       minimum: 0

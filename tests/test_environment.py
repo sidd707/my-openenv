@@ -93,7 +93,9 @@ class TestStepBehaviour:
         obs = env.step(
             make_action(action_name="archive_file", reasoning="archiving now")
         )
-        assert any("read_file_metadata" in entry for entry in obs.action_history)
+        assert any(
+            entry["action"] == "read_file_metadata" for entry in obs.action_history
+        )
 
     def test_step_without_reset_raises_runtime_error(self):
         from server.environment import IrreversibleActionEnv

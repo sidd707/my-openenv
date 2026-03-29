@@ -68,6 +68,7 @@ INITIAL_STATE = {
     "snapshots": [],
     "cost_alerts": 0,
     "escalations": [],
+    "_recon_uses": 0,
 }
 
 _ACTIONS = [
@@ -180,7 +181,9 @@ class CloudInfraTask(BaseTask):
             return 0.1
 
         if action_name in ("list_instances", "describe_instance"):
-            return 0.05
+            if state_after.get("_recon_uses", 0) <= 3:
+                return 0.05
+            return 0.0
 
         if action_name == "scale_down_cluster":
             return 0.1
@@ -226,6 +229,9 @@ class CloudInfraTask(BaseTask):
         elif action_name == "escalate_to_sre":
             reason = parameters.get("reason", "")
             state["escalations"].append(reason)
+
+        elif action_name in ("list_instances", "describe_instance"):
+            state["_recon_uses"] = state.get("_recon_uses", 0) + 1
 
         return state
 

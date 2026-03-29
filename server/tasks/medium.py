@@ -230,7 +230,7 @@ _STALE_POOL = ["audit_log", "temp_imports", "old_reports", "cache_data"]
 class DatabaseMaintenanceTask(BaseTask):
     def get_initial_state(self, seed=None) -> dict[str, Any]:
         if seed is None:
-            return {"tables": copy.deepcopy(INITIAL_TABLES)}
+            return {"tables": copy.deepcopy(INITIAL_TABLES), "_query_table_uses": 0}
 
         rng = random.Random(seed)
         tables = {}
@@ -253,7 +253,7 @@ class DatabaseMaintenanceTask(BaseTask):
                     31, round(info["last_accessed_days_ago"] * rng.uniform(0.8, 1.2))
                 )
 
-        return {"tables": tables}
+        return {"tables": tables, "_query_table_uses": 0}
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [
@@ -303,7 +303,9 @@ class DatabaseMaintenanceTask(BaseTask):
             return 0.0
 
         if action_name == "query_table":
-            return 0.05
+            if state_after.get("_query_table_uses", 0) <= 3:
+                return 0.05
+            return 0.0
 
         if action_name == "escalate_to_human":
             return 0.15
@@ -349,6 +351,9 @@ class DatabaseMaintenanceTask(BaseTask):
         elif action_name == "refresh_stale_cache":
             for t in tables.values():
                 t["has_cache"] = False
+
+        elif action_name == "query_table":
+            state["_query_table_uses"] = state.get("_query_table_uses", 0) + 1
 
         return state
 

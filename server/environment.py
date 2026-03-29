@@ -204,6 +204,16 @@ class IrreversibleActionEnv(Environment):
         else:
             reward = outcome_reward  # outcome-shaped, replaces type-based
 
+        # Compute action result string (before recording, so ActionRecord captures it)
+        if is_irreversible_mistake:
+            action_result = (
+                f"CRITICAL: Action '{action.action_name}' caused irreversible damage "
+                f"and has been blocked. Parameters: {action.parameters}. "
+                f"Episode terminated. This action cannot be undone."
+            )
+        else:
+            action_result = f"Executed {action.action_name} successfully."
+
         # Record action (internal)
         record = ActionRecord(
             action_name=action.action_name,
@@ -211,6 +221,7 @@ class IrreversibleActionEnv(Environment):
             was_mistake=is_irreversible_mistake,
             step=self._episode_state.step_count + 1,
             action_params=action.parameters,
+            action_result=action_result,
         )
         self._episode_state.history.append(record)
         self._episode_state.step_count += 1
@@ -225,15 +236,6 @@ class IrreversibleActionEnv(Environment):
         )
         if done:
             self._episode_state.task_complete = not is_irreversible_mistake
-
-        if is_irreversible_mistake:
-            action_result = (
-                f"CRITICAL: Action '{action.action_name}' caused irreversible damage "
-                f"and has been blocked. Parameters: {action.parameters}. "
-                f"Episode terminated. This action cannot be undone."
-            )
-        else:
-            action_result = f"Executed {action.action_name} successfully."
 
         return self._build_observation(
             last_action_result=action_result,
@@ -259,7 +261,13 @@ class IrreversibleActionEnv(Environment):
         available = self._task.get_available_actions(self._current_state)
 
         history = [
-            f"step {r.step}: {r.action_name}" for r in self._episode_state.history
+            {
+                "step": r.step,
+                "action": r.action_name,
+                "params": r.action_params,
+                "result": r.action_result,
+            }
+            for r in self._episode_state.history
         ]
 
         steps_remaining = max(0, self._max_steps - self._episode_state.step_count)
