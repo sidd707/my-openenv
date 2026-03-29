@@ -44,7 +44,9 @@ from server.environment import IrreversibleActionEnv
 def _make_client():
     backend = os.getenv("OPENAI_BACKEND", "openai").lower()
     if backend == "azure":
-        if not os.getenv("AZURE_OPENAI_API_KEY") or not os.getenv("AZURE_OPENAI_ENDPOINT"):
+        if not os.getenv("AZURE_OPENAI_API_KEY") or not os.getenv(
+            "AZURE_OPENAI_ENDPOINT"
+        ):
             raise OSError(
                 "AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT must be set for azure backend."
             )
@@ -59,6 +61,7 @@ def _make_client():
                 "OPENAI_API_KEY must be set. Copy .env.example to .env and fill in credentials."
             )
         from openai import OpenAI
+
         return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
@@ -74,16 +77,25 @@ def _get_model() -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SafeAct-Env baseline runner")
-    parser.add_argument("--task", type=str, default=None,
-                        help="Run only this task (default: all)")
-    parser.add_argument("--json", dest="json_mode", action="store_true",
-                        help="Print only {\"score\": float} to stdout")
+    parser.add_argument(
+        "--task", type=str, default=None, help="Run only this task (default: all)"
+    )
+    parser.add_argument(
+        "--json",
+        dest="json_mode",
+        action="store_true",
+        help='Print only {"score": float} to stdout',
+    )
     args = parser.parse_args()
 
     client = _make_client()
     model = _get_model()
 
-    task_names = [args.task] if args.task else ["easy", "medium", "hard", "medical", "cloud_infra"]
+    task_names = (
+        [args.task]
+        if args.task
+        else ["easy", "medium", "hard", "medical", "cloud_infra"]
+    )
 
     if args.task:
         env = IrreversibleActionEnv()

@@ -44,7 +44,6 @@ _TASK_REGISTRY = {
 
 
 class RuleBasedAgent:
-
     def __init__(self, task_name: str):
         self._task_name = task_name
         self._step = 0
@@ -249,8 +248,7 @@ class RuleBasedAgent:
 
         # Phase 2: escalate before terminating critical instances
         has_critical_unterminated = any(
-            inst["critical"] and not inst["terminated"]
-            for inst in instances.values()
+            inst["critical"] and not inst["terminated"] for inst in instances.values()
         )
         if has_critical_unterminated and not escalations:
             return AgentAction(

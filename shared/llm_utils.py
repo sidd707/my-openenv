@@ -83,8 +83,7 @@ def build_user_prompt(obs) -> str:
     )
     history_str = (
         "\n".join(
-            f"step {e['step']}: {e['action']}"
-            f"({e['params']}) -> {e['result']}"
+            f"step {e['step']}: {e['action']}({e['params']}) -> {e['result']}"
             for e in obs.action_history
         )
         if obs.action_history
@@ -117,7 +116,9 @@ def parse_action(content: str) -> AgentAction:
             reasoning=data.get("reasoning", "LLM chose this action"),
         )
     except Exception:
-        logger.warning("Failed to parse LLM response, falling back to escalate: %.200s", content)
+        logger.warning(
+            "Failed to parse LLM response, falling back to escalate: %.200s", content
+        )
         return AgentAction(
             action_name="escalate_to_human",
             parameters={"reason": "Failed to parse LLM response"},

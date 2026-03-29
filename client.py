@@ -31,9 +31,7 @@ class SafeActClient(EnvClient[AgentAction, SystemObservation, EpisodeState]):
     def _step_payload(self, action: AgentAction) -> dict:
         return action.model_dump()
 
-    def _parse_result(
-        self, payload: dict
-    ) -> StepResult[SystemObservation]:
+    def _parse_result(self, payload: dict) -> StepResult[SystemObservation]:
         obs = SystemObservation(**payload["observation"])
         return StepResult(
             observation=obs,

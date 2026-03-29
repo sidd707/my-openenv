@@ -73,10 +73,15 @@ def _get_model() -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SafeAct-Env inference runner")
-    parser.add_argument("--task", type=str, default=None,
-                        help="Run only this task (default: all)")
-    parser.add_argument("--json", dest="json_mode", action="store_true",
-                        help="Print only {\"score\": float} to stdout")
+    parser.add_argument(
+        "--task", type=str, default=None, help="Run only this task (default: all)"
+    )
+    parser.add_argument(
+        "--json",
+        dest="json_mode",
+        action="store_true",
+        help='Print only {"score": float} to stdout',
+    )
     args = parser.parse_args()
 
     client = _make_client()
@@ -85,7 +90,8 @@ def main() -> None:
     from server.environment import IrreversibleActionEnv
 
     task_names = (
-        [args.task] if args.task
+        [args.task]
+        if args.task
         else ["easy", "medium", "hard", "medical", "cloud_infra"]
     )
 
