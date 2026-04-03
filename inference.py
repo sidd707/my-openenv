@@ -43,17 +43,41 @@ MAX_RUNTIME_SECONDS = 18 * 60  # 18 minutes safety buffer
 def log_start(task: str, env: str, model: str) -> None:
     global START_TIME
     START_TIME = time.time()
-    print(json.dumps({"event": "[START]", "task": task, "env": env, "model": model}), flush=True)
+    print(
+        json.dumps({"event": "[START]", "task": task, "env": env, "model": model}),
+        flush=True,
+    )
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
-    print(json.dumps({"event": "[STEP]", "step": step, "action": action,
-                      "reward": reward, "done": done, "error": error}), flush=True)
+    print(
+        json.dumps(
+            {
+                "event": "[STEP]",
+                "step": step,
+                "action": action,
+                "reward": reward,
+                "done": done,
+                "error": error,
+            }
+        ),
+        flush=True,
+    )
 
 
 def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
-    print(json.dumps({"event": "[END]", "success": success, "steps": steps,
-                      "score": score, "rewards": rewards}), flush=True)
+    print(
+        json.dumps(
+            {
+                "event": "[END]",
+                "success": success,
+                "steps": steps,
+                "score": score,
+                "rewards": rewards,
+            }
+        ),
+        flush=True,
+    )
 
 
 from openai import AzureOpenAI, OpenAI
@@ -68,7 +92,7 @@ def _make_client():
     if os.getenv("API_BASE_URL"):
         return OpenAI(
             base_url=os.environ["API_BASE_URL"],
-            api_key=os.environ.get("HF_TOKEN", "hf-token"),
+            api_key=os.environ["HF_TOKEN"],
         )
 
     # Backward compat: Azure backend
@@ -124,7 +148,10 @@ def main() -> None:
         result = {"score": 0.0, "steps": 0, "error": None}
         try:
             result = run_episode(
-                env, args.task, client, model,
+                env,
+                args.task,
+                client,
+                model,
                 log_step_fn=log_step,
                 start_time=START_TIME,
                 max_runtime=MAX_RUNTIME_SECONDS,
@@ -143,12 +170,22 @@ def main() -> None:
     else:
         log_start(task="all", env="SafeAct-Env", model=model)
         results = run_all_tasks(
-            IrreversibleActionEnv, client, model, task_names=task_names
+            IrreversibleActionEnv,
+            client,
+            model,
+            task_names=task_names,
+            log_step_fn=log_step,
+            start_time=START_TIME,
+            max_runtime=MAX_RUNTIME_SECONDS,
         )
-        scores = [v["score"] for v in results.values() if isinstance(v, dict) and "score" in v]
+        scores = [
+            v["score"] for v in results.values() if isinstance(v, dict) and "score" in v
+        ]
         log_end(
             success=all(s >= 0.5 for s in scores),
-            steps=sum(v.get("steps", 0) for v in results.values() if isinstance(v, dict)),
+            steps=sum(
+                v.get("steps", 0) for v in results.values() if isinstance(v, dict)
+            ),
             score=round(sum(scores) / len(scores), 4) if scores else 0.0,
             rewards=scores,
         )

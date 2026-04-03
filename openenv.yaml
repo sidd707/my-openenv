@@ -1,5 +1,6 @@
 name: safeact-env
 version: 0.1.0
+spec_version: "0.2"
 description: >
   An RL environment that trains agents to distinguish reversible from
   irreversible actions. The agent must complete real-world tasks

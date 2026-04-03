@@ -66,10 +66,15 @@ def run_episode(
                 error=None,
             )
 
-        if start_time is not None and max_runtime is not None:
-            if time.time() - start_time > max_runtime:
-                logger.warning("[%s] Runtime limit reached at step %d, stopping early", task_id, steps)
-                break
+        if (
+            start_time is not None
+            and max_runtime is not None
+            and time.time() - start_time > max_runtime
+        ):
+            logger.warning(
+                "[%s] Runtime limit reached at step %d, stopping early", task_id, steps
+            )
+            break
 
     # Grade the episode
     task_obj = TASK_REGISTRY[task_id]()
@@ -87,6 +92,9 @@ def run_all_tasks(
     client,
     model: str,
     task_names: list[str] | None = None,
+    log_step_fn=None,
+    start_time: float | None = None,
+    max_runtime: float | None = None,
 ) -> dict[str, dict]:
     """Run all tasks, returning {task_id: {score, steps, error}}."""
     if task_names is None:
@@ -96,7 +104,15 @@ def run_all_tasks(
     for task_id in task_names:
         env = env_cls()
         try:
-            results[task_id] = run_episode(env, task_id, client, model)
+            results[task_id] = run_episode(
+                env,
+                task_id,
+                client,
+                model,
+                log_step_fn=log_step_fn,
+                start_time=start_time,
+                max_runtime=max_runtime,
+            )
         except Exception as e:
             logger.error("[%s] Episode failed: %s: %s", task_id, type(e).__name__, e)
             results[task_id] = {
