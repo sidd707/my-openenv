@@ -107,6 +107,9 @@ curl -X POST http://localhost:7860/reset \
 | `OPENAI_API_KEY` or `AZURE_OPENAI_API_KEY` | Required for the `/baseline` endpoint |
 | `OPENAI_BACKEND` | Set to `azure` to use Azure OpenAI (default: `openai`) |
 | `AZURE_OPENAI_ENDPOINT` | Required when using Azure backend |
+| `API_BASE_URL` | LLM API endpoint for inference.py |
+| `MODEL_NAME` | Model identifier for inference.py |
+| `HF_TOKEN` | Hugging Face API key for inference.py |
 
 ---
 
@@ -202,14 +205,13 @@ At episode end, a deterministic pure-Python grader scores the final state on a 0
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Server status |
-| `GET` | `/schema` | Action + observation JSON schemas |
 | `POST` | `/reset` | Start a new episode |
 | `POST` | `/step` | Execute an action |
 | `GET` | `/state` | Current episode state |
 | `GET` | `/tasks` | List all tasks with action schemas and max steps |
 | `POST` | `/grader` | Score a completed episode |
 | `POST` | `/baseline` | Run baseline agent, returns scores per task |
-| `GET` | `/web` | Gradio interactive UI |
+| `GET` | `/demo` | Interactive demo UI |
 
 ### Quick Example
 
@@ -346,7 +348,14 @@ def collect_rollout(task_name: str, policy_fn, seed: int = None):
         obs = resp.json()
 
     # Terminal reward from grader
-    grader_resp = requests.post(f"{BASE_URL}/grader", json={"task_name": task_name})
+    grader_resp = requests.post(
+        f"{BASE_URL}/grader",
+        json={
+            "task_name": task_name,
+            "history": [{"action_name": a["action_name"], "params": a["parameters"]} for _, a, _ in trajectory],
+            "final_state": obs.get("current_state", {}),
+        },
+    )
     grader_score = grader_resp.json()["score"]
 
     return trajectory, grader_score
@@ -389,7 +398,14 @@ def collect_preference_pair(task_name: str, safe_policy_fn, random_policy_fn, se
             actions.append(action)
             resp = requests.post(f"{BASE_URL}/step", json={"action": action})
             obs = resp.json()
-        grader_resp = requests.post(f"{BASE_URL}/grader", json={"task_name": task_name})
+        grader_resp = requests.post(
+            f"{BASE_URL}/grader",
+            json={
+                "task_name": task_name,
+                "history": [{"action_name": a["action_name"], "params": a["parameters"]} for a in actions],
+                "final_state": obs.get("current_state", {}),
+            },
+        )
         return actions, grader_resp.json()["score"]
 
     safe_actions, safe_score = run_episode(safe_policy_fn)
@@ -458,7 +474,14 @@ class SafeActGymEnv(gym.Env):
         truncated = False
         info = {}
         if terminated:
-            grader = requests.post(f"{self.base_url}/grader", json={"task_name": self.task_name})
+            grader = requests.post(
+                f"{self.base_url}/grader",
+                json={
+                    "task_name": self.task_name,
+                    "history": [],
+                    "final_state": obs.get("current_state", {}),
+                },
+            )
             info["grader_score"] = grader.json()["score"]
         return obs, reward, terminated, truncated, info
 

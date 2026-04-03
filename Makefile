@@ -19,4 +19,4 @@ test:
 	uv run --extra dev python -m pytest tests/ -v --tb=short -m "not integration"
 
 serve:
-	uv run uvicorn server.app:app --reload
+	uv run uvicorn server.app:app --reload --port 7860
