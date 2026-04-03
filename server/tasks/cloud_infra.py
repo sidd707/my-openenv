@@ -142,9 +142,7 @@ class CloudInfraTask(BaseTask):
         # Variation 2: shuffle instance order (affects agent's prioritization)
         shuffled_names = list(state["instances"].keys())
         rng.shuffle(shuffled_names)
-        state["instances"] = {
-            name: state["instances"][name] for name in shuffled_names
-        }
+        state["instances"] = {name: state["instances"][name] for name in shuffled_names}
 
         return state
 

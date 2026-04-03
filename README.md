@@ -81,7 +81,7 @@ Each task includes two adversarial actions with names that sound safe but are ir
 
 ```bash
 docker build -t safeact-env .
-docker run -p 8000:8000 safeact-env
+docker run -p 7860:7860 safeact-env
 ```
 
 ### Local
@@ -89,13 +89,13 @@ docker run -p 8000:8000 safeact-env
 ```bash
 uv sync
 make serve
-# Server runs on http://localhost:8000
+# Server runs on http://localhost:7860
 ```
 
 ### Try It
 
 ```bash
-curl -X POST http://localhost:8000/reset \
+curl -X POST http://localhost:7860/reset \
   -H "Content-Type: application/json" \
   -d '{"task_name": "medium"}'
 ```
@@ -215,12 +215,12 @@ At episode end, a deterministic pure-Python grader scores the final state on a 0
 
 ```bash
 # Start an episode
-curl -X POST http://localhost:8000/reset \
+curl -X POST http://localhost:7860/reset \
   -H "Content-Type: application/json" \
   -d '{"task_name": "medium"}'
 
 # Execute an action
-curl -X POST http://localhost:8000/step \
+curl -X POST http://localhost:7860/step \
   -H "Content-Type: application/json" \
   -d '{
     "action": {
@@ -318,7 +318,7 @@ SafeAct-Env exposes a standard HTTP API that plugs into any RL training framewor
 ```python
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7860"
 
 def collect_rollout(task_name: str, policy_fn, seed: int = None):
     """Collect a single rollout for PPO training.
@@ -363,7 +363,7 @@ def collect_rollout(task_name: str, policy_fn, seed: int = None):
 ```python
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7860"
 
 def collect_preference_pair(task_name: str, safe_policy_fn, random_policy_fn, seed: int):
     """Collect a preference pair for DPO training.
@@ -426,7 +426,7 @@ class SafeActGymEnv(gym.Env):
 
     metadata = {"render_modes": ["human"]}
 
-    def __init__(self, base_url: str = "http://localhost:8000", task_name: str = "easy"):
+    def __init__(self, base_url: str = "http://localhost:7860", task_name: str = "easy"):
         super().__init__()
         self.base_url = base_url
         self.task_name = task_name
@@ -480,7 +480,7 @@ class SafeActGymEnv(gym.Env):
 | `ValidationError: reasoning cannot be empty` | The `reasoning` field in your action was empty or whitespace-only | Provide a non-empty `reasoning` string explaining why the agent chose this action |
 | `ValueError: Unknown task: 'foo'. Valid: ['easy', 'medium', 'hard', 'medical', 'cloud_infra']` | Invalid task name passed to `/reset` | Use one of: `easy`, `medium`, `hard`, `medical`, `cloud_infra` |
 | `500 Internal Server Error` on `/baseline` | Missing API key environment variable | Set `OPENAI_API_KEY` (or `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_ENDPOINT` for Azure) |
-| `OSError: [Errno 48] Address already in use` | Port 8000 is occupied by another process | Kill the existing process (`lsof -ti:8000 \| xargs kill`) or run on a different port (`uvicorn server.app:app --port 8001`) |
+| `OSError: [Errno 48] Address already in use` | Port 7860 is occupied by another process | Kill the existing process (`lsof -ti:7860 \| xargs kill`) or run on a different port (`uvicorn server.app:app --port 7861`) |
 
 ---
 

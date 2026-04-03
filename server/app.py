@@ -5,12 +5,12 @@ Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
 import importlib.metadata
-import threading
 import json
 import logging
 import os
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -267,7 +267,8 @@ def run_baseline(request: BaselineRequest):
 def main():
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":

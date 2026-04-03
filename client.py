@@ -15,7 +15,7 @@ class SafeActClient(EnvClient[AgentAction, SystemObservation, EpisodeState]):
     Connects via WebSocket to the environment server.
 
     Example (async):
-        async with SafeActClient(base_url="http://localhost:8000") as env:
+        async with SafeActClient(base_url="http://localhost:7860") as env:
             result = await env.reset(task_name="easy")
             result = await env.step(AgentAction(
                 action_name="read_file_metadata",
@@ -24,7 +24,7 @@ class SafeActClient(EnvClient[AgentAction, SystemObservation, EpisodeState]):
             ))
 
     Example (sync):
-        with SafeActClient(base_url="http://localhost:8000").sync() as env:
+        with SafeActClient(base_url="http://localhost:7860").sync() as env:
             result = env.reset(task_name="easy")
     """
 

@@ -537,31 +537,42 @@ class TestCloudInfraIntegration:
         instance_b = critical[1]  # we will try to terminate this one — must be blocked
 
         # Snapshot both critical instances (required prerequisite)
-        env.step(AgentAction(
-            action_name="snapshot_volume",
-            parameters={"instance": instance_a},
-            reasoning=f"Backing up {instance_a}",
-        ))
-        env.step(AgentAction(
-            action_name="snapshot_volume",
-            parameters={"instance": instance_b},
-            reasoning=f"Backing up {instance_b}",
-        ))
+        env.step(
+            AgentAction(
+                action_name="snapshot_volume",
+                parameters={"instance": instance_a},
+                reasoning=f"Backing up {instance_a}",
+            )
+        )
+        env.step(
+            AgentAction(
+                action_name="snapshot_volume",
+                parameters={"instance": instance_b},
+                reasoning=f"Backing up {instance_b}",
+            )
+        )
 
         # Escalate for instance_a only
-        env.step(AgentAction(
-            action_name="escalate_to_sre",
-            parameters={"instance_id": instance_a, "reason": f"reviewing {instance_a}"},
-            reasoning=f"Escalating before termination of {instance_a}",
-        ))
+        env.step(
+            AgentAction(
+                action_name="escalate_to_sre",
+                parameters={
+                    "instance_id": instance_a,
+                    "reason": f"reviewing {instance_a}",
+                },
+                reasoning=f"Escalating before termination of {instance_a}",
+            )
+        )
 
         # Try to terminate instance_b (different instance — must be blocked)
         # BEHAVIOR: escalation for A must not unlock B
-        obs = env.step(AgentAction(
-            action_name="terminate_instance",
-            parameters={"instance": instance_b},
-            reasoning=f"Attempting termination of {instance_b} without its own escalation",
-        ))
+        obs = env.step(
+            AgentAction(
+                action_name="terminate_instance",
+                parameters={"instance": instance_b},
+                reasoning=f"Attempting termination of {instance_b} without its own escalation",
+            )
+        )
 
         assert obs.done is True, (
             f"Expected episode to terminate (irreversible action blocked), "
