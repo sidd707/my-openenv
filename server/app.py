@@ -5,6 +5,7 @@ Adds hackathon-required endpoints: /tasks, /grader, /baseline.
 """
 
 import importlib.metadata
+import threading
 import json
 import logging
 import os
@@ -66,6 +67,7 @@ app = create_app(
 # The openenv-core creates a fresh env per request which breaks multi-step
 # episodes over HTTP. We store envs keyed by episode_id.
 _ENV_SESSIONS: dict[str, tuple[IrreversibleActionEnv, float]] = {}
+_SESSIONS_LOCK = threading.Lock()
 
 _SESSION_TTL = 300  # 5 minutes
 
@@ -123,42 +125,50 @@ def reset_episode(request: ResetRequest):
     obs = env.reset(
         seed=request.seed, episode_id=episode_id, task_name=request.task_name
     )
-    _ENV_SESSIONS[episode_id] = (env, time.time())
-    return _serialize_observation(obs)
+    with _SESSIONS_LOCK:
+        _ENV_SESSIONS[episode_id] = (env, time.time())
+    response = _serialize_observation(obs)
+    response["episode_id"] = episode_id
+    return response
 
 
 @app.post("/step")
 def step_episode(request: StepRequest):
-    # Find env by episode_id, or fall back to most recent session
-    env = None
-    if request.episode_id and request.episode_id in _ENV_SESSIONS:
-        env, _ = _ENV_SESSIONS[request.episode_id]
-    elif _ENV_SESSIONS:
-        env, _ = next(reversed(_ENV_SESSIONS.values()))
-
-    if env is None:
+    # Strict session lookup — no silent fallback
+    if not request.episode_id or request.episode_id not in _ENV_SESSIONS:
         raise HTTPException(
-            status_code=400, detail="No active episode. Call /reset first."
+            status_code=400,
+            detail="Invalid or missing episode_id. Call /reset first to start an episode.",
         )
+    env, _ = _ENV_SESSIONS[request.episode_id]
 
     action = AgentAction(**request.action)
     obs = env.step(action)
 
     # Clean up completed episodes
-    if getattr(obs, "done", False):
-        _ENV_SESSIONS.pop(request.episode_id, None)
-    else:
-        _ENV_SESSIONS[request.episode_id] = (env, time.time())
+    with _SESSIONS_LOCK:
+        if getattr(obs, "done", False):
+            _ENV_SESSIONS.pop(request.episode_id, None)
+        elif request.episode_id:  # only write back if we have a valid key
+            _ENV_SESSIONS[request.episode_id] = (env, time.time())
 
     return _serialize_observation(obs)
 
 
 @app.get("/state")
-def get_state():
-    if _ENV_SESSIONS:
-        env, _ = next(reversed(_ENV_SESSIONS.values()))
+def get_state(episode_id: str | None = None):
+    if episode_id and episode_id in _ENV_SESSIONS:
+        env, _ = _ENV_SESSIONS[episode_id]
         return env.state
-    return {}
+    if not episode_id:
+        raise HTTPException(
+            status_code=400,
+            detail="episode_id query parameter is required.",
+        )
+    raise HTTPException(
+        status_code=404,
+        detail=f"Episode '{episode_id}' not found. It may have expired.",
+    )
 
 
 @app.get("/demo", response_class=HTMLResponse)

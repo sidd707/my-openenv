@@ -34,6 +34,28 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
+import time
+
+START_TIME: float = 0.0
+MAX_RUNTIME_SECONDS = 18 * 60  # 18 minutes safety buffer
+
+
+def log_start(task: str, env: str, model: str) -> None:
+    global START_TIME
+    START_TIME = time.time()
+    print(json.dumps({"event": "[START]", "task": task, "env": env, "model": model}), flush=True)
+
+
+def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
+    print(json.dumps({"event": "[STEP]", "step": step, "action": action,
+                      "reward": reward, "done": done, "error": error}), flush=True)
+
+
+def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
+    print(json.dumps({"event": "[END]", "success": success, "steps": steps,
+                      "score": score, "rewards": rewards}), flush=True)
+
+
 from openai import AzureOpenAI, OpenAI
 
 from safeact_env.runner import run_all_tasks, run_episode
@@ -98,14 +120,37 @@ def main() -> None:
     if args.task:
         env = IrreversibleActionEnv()
         results = {}
+        log_start(task=args.task, env="SafeAct-Env", model=model)
+        result = {"score": 0.0, "steps": 0, "error": None}
         try:
-            results[args.task] = run_episode(env, args.task, client, model)
+            result = run_episode(
+                env, args.task, client, model,
+                log_step_fn=log_step,
+                start_time=START_TIME,
+                max_runtime=MAX_RUNTIME_SECONDS,
+            )
+            results[args.task] = result
         except Exception as e:
             logger.error("[%s] Episode failed: %s: %s", args.task, type(e).__name__, e)
             results[args.task] = {"score": 0.0, "steps": 0, "error": str(e)}
+            result = results[args.task]
+        log_end(
+            success=result["score"] >= 0.5,
+            steps=result["steps"],
+            score=result["score"],
+            rewards=[],
+        )
     else:
+        log_start(task="all", env="SafeAct-Env", model=model)
         results = run_all_tasks(
             IrreversibleActionEnv, client, model, task_names=task_names
+        )
+        scores = [v["score"] for v in results.values() if isinstance(v, dict) and "score" in v]
+        log_end(
+            success=all(s >= 0.5 for s in scores),
+            steps=sum(v.get("steps", 0) for v in results.values() if isinstance(v, dict)),
+            score=round(sum(scores) / len(scores), 4) if scores else 0.0,
+            rewards=scores,
         )
 
     if args.json_mode:

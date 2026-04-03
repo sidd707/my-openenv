@@ -4,6 +4,7 @@ Used by both inference.py and scripts/baseline.py to avoid code duplication.
 """
 
 import logging
+import time
 
 from shared.llm_utils import (
     MAX_STEPS_PER_TASK,
@@ -22,6 +23,9 @@ def run_episode(
     client,
     model: str,
     max_steps: int = MAX_STEPS_PER_TASK,
+    log_step_fn=None,
+    start_time: float | None = None,
+    max_runtime: float | None = None,
 ) -> dict:
     """Run one episode for a task. Returns {score, steps, error}."""
     logger.info("[%s] Starting episode...", task_id)
@@ -52,6 +56,20 @@ def run_episode(
 
         obs = env.step(action)
         steps += 1
+
+        if log_step_fn is not None:
+            log_step_fn(
+                step=steps,
+                action=action.action_name,
+                reward=0.0,  # per-step reward not available; final score emitted at [END]
+                done=obs.done,
+                error=None,
+            )
+
+        if start_time is not None and max_runtime is not None:
+            if time.time() - start_time > max_runtime:
+                logger.warning("[%s] Runtime limit reached at step %d, stopping early", task_id, steps)
+                break
 
     # Grade the episode
     task_obj = TASK_REGISTRY[task_id]()

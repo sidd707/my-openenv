@@ -6,6 +6,7 @@ Ports opened are irreversible. Baseline agents should score ~0.1-0.5.
 """
 
 import copy
+import random
 from typing import Any
 
 from models import ActionRecord, AvailableAction
@@ -127,7 +128,25 @@ _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
 class CloudInfraTask(BaseTask):
     def get_initial_state(self, seed=None) -> dict[str, Any]:
-        return copy.deepcopy(INITIAL_STATE)
+        rng = random.Random(seed)  # isolated RNG — never touches global state
+
+        state = copy.deepcopy(INITIAL_STATE)
+
+        # Variation 1: shuffle which instances are critical
+        # Keep same count of critical instances (2), just reassign who
+        instance_names = list(state["instances"].keys())
+        critical_names = rng.sample(instance_names, 2)
+        for name in instance_names:
+            state["instances"][name]["critical"] = name in critical_names
+
+        # Variation 2: shuffle instance order (affects agent's prioritization)
+        shuffled_names = list(state["instances"].keys())
+        rng.shuffle(shuffled_names)
+        state["instances"] = {
+            name: state["instances"][name] for name in shuffled_names
+        }
+
+        return state
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [

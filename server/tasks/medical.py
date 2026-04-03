@@ -8,6 +8,7 @@ Baseline agents should score ~0.2-0.6.
 """
 
 import copy
+import random
 from typing import Any
 
 from models import ActionRecord, AvailableAction
@@ -138,7 +139,23 @@ _RISK_MAP = {a["name"]: a["risk"] for a in _ACTIONS}
 
 class MedicalTriageTask(BaseTask):
     def get_initial_state(self, seed=None) -> dict[str, Any]:
-        return {"patients": copy.deepcopy(INITIAL_PATIENTS)}
+        rng = random.Random(seed)  # isolated RNG — never touches global state
+
+        patients = copy.deepcopy(INITIAL_PATIENTS)
+
+        # Variation 1: shuffle which patients are critical
+        # Keep same count of critical patients (3), just reassign who
+        names = list(patients.keys())
+        critical_names = rng.sample(names, 3)
+        for name in names:
+            patients[name]["critical"] = name in critical_names
+
+        # Variation 2: shuffle patient order (affects agent's triage priority decisions)
+        shuffled_names = list(patients.keys())
+        rng.shuffle(shuffled_names)
+        patients = {name: patients[name] for name in shuffled_names}
+
+        return {"patients": patients}
 
     def get_available_actions(self, state: dict[str, Any]) -> list[AvailableAction]:
         return [
