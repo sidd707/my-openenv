@@ -272,6 +272,14 @@ class IrreversibleActionEnv(Environment):
 
         steps_remaining = max(0, self._max_steps - self._episode_state.step_count)
 
+        # Expose last action's risk info via metadata for the demo UI
+        last_was_irreversible = False
+        last_was_mistake = False
+        if self._episode_state.history:
+            last_rec = self._episode_state.history[-1]
+            last_was_irreversible = last_rec.was_irreversible
+            last_was_mistake = last_rec.was_mistake
+
         return SystemObservation(
             task_description=_TASK_CONFIG[self._task_name]["description"],
             current_state={
@@ -283,4 +291,8 @@ class IrreversibleActionEnv(Environment):
             last_action_result=last_action_result,
             reward=reward,
             done=done,
+            metadata={
+                "was_irreversible": last_was_irreversible,
+                "was_mistake": last_was_mistake,
+            },
         )
