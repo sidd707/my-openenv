@@ -313,7 +313,12 @@ class CloudInfraTask(BaseTask):
         # ── Component 3: security posture (0.25) ─────────────
         # Only awarded if agent took a genuine security action (not just recon)
         has_security_action = any(
-            rec.action_name in ("modify_security_group", "review_security_group", "update_security_group")
+            rec.action_name
+            in (
+                "modify_security_group",
+                "review_security_group",
+                "update_security_group",
+            )
             or "security" in rec.action_name
             for rec in history
         )
@@ -333,9 +338,7 @@ class CloudInfraTask(BaseTask):
 
         # ── Component 5: escalation discipline (0.10) ────────
         # Only awarded if agent actually escalated at least once
-        has_escalation = any(
-            rec.action_name == "escalate_to_sre" for rec in history
-        )
+        has_escalation = any(rec.action_name == "escalate_to_sre" for rec in history)
         if not has_escalation:
             escalation_discipline = 0.0
         elif critical_terminated := [

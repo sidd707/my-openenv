@@ -74,7 +74,13 @@ class TestCloudInfraGrader:
     def test_open_port_public_cidr_penalizes_security(self, task):
         # Need a genuine security action to activate security_posture scoring
         history_with_security = _ACTIVE_HISTORY + [
-            _rec("modify_security_group", step=4, sg="sg-web", port="443", cidr="10.0.0.0/8"),
+            _rec(
+                "modify_security_group",
+                step=4,
+                sg="sg-web",
+                port="443",
+                cidr="10.0.0.0/8",
+            ),
         ]
         state = _make_state()
         state["instances"]["web-01"]["ports_open"] = [

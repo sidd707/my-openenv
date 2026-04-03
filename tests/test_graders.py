@@ -160,20 +160,35 @@ class TestDatabaseMaintenanceGrader:
             state["tables"][name]["analyzed"] = True
             state["tables"][name]["archived"] = True
             state["tables"][name]["backed_up"] = True
-            history.append(ActionRecord(
-                action_name="analyze_table_usage", was_irreversible=False,
-                was_mistake=False, step=step, action_params={"table": name},
-            ))
+            history.append(
+                ActionRecord(
+                    action_name="analyze_table_usage",
+                    was_irreversible=False,
+                    was_mistake=False,
+                    step=step,
+                    action_params={"table": name},
+                )
+            )
             step += 1
-            history.append(ActionRecord(
-                action_name="create_backup", was_irreversible=False,
-                was_mistake=False, step=step, action_params={"table": name},
-            ))
+            history.append(
+                ActionRecord(
+                    action_name="create_backup",
+                    was_irreversible=False,
+                    was_mistake=False,
+                    step=step,
+                    action_params={"table": name},
+                )
+            )
             step += 1
-            history.append(ActionRecord(
-                action_name="archive_old_records", was_irreversible=False,
-                was_mistake=False, step=step, action_params={"table": name},
-            ))
+            history.append(
+                ActionRecord(
+                    action_name="archive_old_records",
+                    was_irreversible=False,
+                    was_mistake=False,
+                    step=step,
+                    action_params={"table": name},
+                )
+            )
             step += 1
         score = task.grade(history, state)
         # perf=0.25, safety=0.30, backup=0.25, activity=min(12/9,1)*0.20=0.20
@@ -297,10 +312,15 @@ class TestDatabaseMaintenanceGrader:
         for name in stale_names:
             state_partial["tables"][name]["analyzed"] = True
             state_partial["tables"][name]["archived"] = True
-            history_partial.append(ActionRecord(
-                action_name="analyze_table_usage", was_irreversible=False,
-                was_mistake=False, step=step, action_params={"table": name},
-            ))
+            history_partial.append(
+                ActionRecord(
+                    action_name="analyze_table_usage",
+                    was_irreversible=False,
+                    was_mistake=False,
+                    step=step,
+                    action_params={"table": name},
+                )
+            )
             step += 1
         score_partial = task.grade(history_partial, state_partial)
 
@@ -312,11 +332,20 @@ class TestDatabaseMaintenanceGrader:
             state_full["tables"][name]["analyzed"] = True
             state_full["tables"][name]["backed_up"] = True
             state_full["tables"][name]["archived"] = True
-            for action in ("analyze_table_usage", "create_backup", "archive_old_records"):
-                history_full.append(ActionRecord(
-                    action_name=action, was_irreversible=False,
-                    was_mistake=False, step=step, action_params={"table": name},
-                ))
+            for action in (
+                "analyze_table_usage",
+                "create_backup",
+                "archive_old_records",
+            ):
+                history_full.append(
+                    ActionRecord(
+                        action_name=action,
+                        was_irreversible=False,
+                        was_mistake=False,
+                        step=step,
+                        action_params={"table": name},
+                    )
+                )
                 step += 1
         score_full = task.grade(history_full, state_full)
 

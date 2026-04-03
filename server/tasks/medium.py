@@ -395,7 +395,8 @@ class DatabaseMaintenanceTask(BaseTask):
 
         # Stale table names — used by multiple components below
         stale_table_names = {
-            name for name, info in tables.items()
+            name
+            for name, info in tables.items()
             if info.get("last_accessed_days_ago", 0) > 30
         }
 
