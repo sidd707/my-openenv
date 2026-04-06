@@ -18,14 +18,17 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m appuser
+RUN useradd -m -u 1000 appuser
+
+ENV HOME=/home/appuser \
+    PATH=/home/appuser/.local/bin:$PATH
 
 WORKDIR /app
 
 # Copy installed packages and app code from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /app /app
+COPY --chown=appuser --from=builder /app /app
 
 USER appuser
 
