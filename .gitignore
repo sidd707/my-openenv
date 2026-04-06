@@ -2,7 +2,6 @@
 __pycache__/
 *.pyc
 .env
-.env.*
 dist/
 *.egg-info/
 .ruff_cache/
@@ -10,3 +9,6 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+Claude.md
+.claude/
+cl.md
