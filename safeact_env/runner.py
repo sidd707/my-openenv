@@ -61,7 +61,7 @@ def run_episode(
             log_step_fn(
                 step=steps,
                 action=action.action_name,
-                reward=0.0,  # per-step reward not available; final score emitted at [END]
+                reward=obs.reward,
                 done=obs.done,
                 error=None,
             )

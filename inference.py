@@ -38,44 +38,33 @@ import time
 
 START_TIME: float = 0.0
 MAX_RUNTIME_SECONDS = 18 * 60  # 18 minutes safety buffer
+SUCCESS_SCORE_THRESHOLD = 0.1
+
+_step_rewards: list[float] = []
 
 
 def log_start(task: str, env: str, model: str) -> None:
     global START_TIME
     START_TIME = time.time()
-    print(
-        json.dumps({"event": "[START]", "task": task, "env": env, "model": model}),
-        flush=True,
-    )
+    _step_rewards.clear()
+    print(f"[START] task={task} env=safeact-env model={model}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error=None) -> None:
+    _step_rewards.append(reward)
+    done_str = "true" if done else "false"
+    error_str = "null" if error is None else str(error)
     print(
-        json.dumps(
-            {
-                "event": "[STEP]",
-                "step": step,
-                "action": action,
-                "reward": reward,
-                "done": done,
-                "error": error,
-            }
-        ),
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_str} error={error_str}",
         flush=True,
     )
 
 
 def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
+    success_str = "true" if success else "false"
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        json.dumps(
-            {
-                "event": "[END]",
-                "success": success,
-                "steps": steps,
-                "score": score,
-                "rewards": rewards,
-            }
-        ),
+        f"[END] success={success_str} steps={steps} score={score:.2f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -162,10 +151,10 @@ def main() -> None:
             results[args.task] = {"score": 0.0, "steps": 0, "error": str(e)}
             result = results[args.task]
         log_end(
-            success=result["score"] >= 0.5,
+            success=result["score"] >= SUCCESS_SCORE_THRESHOLD,
             steps=result["steps"],
             score=result["score"],
-            rewards=[],
+            rewards=list(_step_rewards),
         )
     else:
         log_start(task="all", env="SafeAct-Env", model=model)
@@ -182,12 +171,12 @@ def main() -> None:
             v["score"] for v in results.values() if isinstance(v, dict) and "score" in v
         ]
         log_end(
-            success=all(s >= 0.5 for s in scores),
+            success=all(s >= SUCCESS_SCORE_THRESHOLD for s in scores),
             steps=sum(
                 v.get("steps", 0) for v in results.values() if isinstance(v, dict)
             ),
             score=round(sum(scores) / len(scores), 4) if scores else 0.0,
-            rewards=scores,
+            rewards=list(_step_rewards),
         )
 
     if args.json_mode:

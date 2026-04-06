@@ -16,6 +16,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import gradio as gr
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse
 from openenv.core.env_server.http_server import create_app
@@ -54,6 +55,26 @@ _ACTION_SCHEMA = {
     },
 }
 
+# ── Demo tab for Gradio TabbedInterface ────────────────────────
+
+
+def build_demo_tab(web_manager, action_fields, metadata, is_chat_env, title, quick_start_md):
+    with gr.Blocks() as demo:
+        gr.HTML("""
+            <div style="text-align:center; padding: 10px 0 4px 0;">
+                <b>🎮 Interactive Demo — auto-play mode included</b><br>
+                <small>Use the Playground tab for manual step/reset control</small>
+            </div>
+            <iframe
+                src="/demo"
+                width="100%"
+                height="850px"
+                style="border:none; border-radius:8px;">
+            </iframe>
+        """)
+    return demo
+
+
 # ── Create base app from openenv-core ────────────────────────
 os.environ.setdefault("ENABLE_WEB_INTERFACE", "true")
 app = create_app(
@@ -61,6 +82,7 @@ app = create_app(
     action_cls=AgentAction,
     observation_cls=SystemObservation,
     max_concurrent_envs=4,
+    gradio_builder=build_demo_tab,
 )
 
 # ── Replace stateless /reset and /step with session-aware versions ──

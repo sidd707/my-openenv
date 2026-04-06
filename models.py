@@ -36,9 +36,13 @@ class AgentAction(OpenEnvAction):
     Inherits: metadata: Dict[str, Any] from OpenEnvAction (framework field, ignore it)
     """
 
-    action_name: str
-    parameters: dict[str, Any]
-    reasoning: str
+    action_name: str = Field(json_schema_extra={"default": "list_directory"})
+    parameters: dict[str, Any] = Field(json_schema_extra={"default": "{}"})
+    reasoning: str = Field(
+        json_schema_extra={
+            "default": "Listing directory to see all files before acting."
+        }
+    )
 
     @field_validator("reasoning")
     @classmethod

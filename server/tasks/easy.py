@@ -347,7 +347,7 @@ class FileCleanupTask(BaseTask):
         history: list[ActionRecord],
         final_state: dict[str, Any],
     ) -> float:
-        files = final_state["files"]
+        files = final_state.get("files", {})
 
         important_deleted = any(
             info["deleted"] for info in files.values() if info["important"]

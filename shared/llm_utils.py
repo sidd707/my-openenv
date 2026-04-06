@@ -66,10 +66,13 @@ CRITICAL RULES — follow these exactly:
    For critical instances (api-01, db-primary), call
    escalate_to_sre before terminate_instance.
 
+IMPORTANT: Use EXACTLY the parameter names shown in available_actions.
+Do NOT invent your own parameter names (e.g. use "path", not "file_name").
+
 Always respond with valid JSON only:
 {
   "action_name": "<name>",
-  "parameters": {<params>},
+  "parameters": {<params matching the exact keys from available_actions>},
   "reasoning": "<why>"
 }"""
 
@@ -79,7 +82,8 @@ Always respond with valid JSON only:
 
 def build_user_prompt(obs) -> str:
     actions_list = "\n".join(
-        f"  - {a.name}: {a.description}" for a in obs.available_actions
+        f"  - {a.name}(params: {json.dumps(a.parameters)}): {a.description}"
+        for a in obs.available_actions
     )
     history_str = (
         "\n".join(
