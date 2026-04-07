@@ -157,27 +157,32 @@ def main() -> None:
             rewards=list(_step_rewards),
         )
     else:
-        log_start(task="all", env="SafeAct-Env", model=model)
-        results = run_all_tasks(
-            IrreversibleActionEnv,
-            client,
-            model,
-            task_names=task_names,
-            log_step_fn=log_step,
-            start_time=START_TIME,
-            max_runtime=MAX_RUNTIME_SECONDS,
-        )
-        scores = [
-            v["score"] for v in results.values() if isinstance(v, dict) and "score" in v
-        ]
-        log_end(
-            success=all(s >= SUCCESS_SCORE_THRESHOLD for s in scores),
-            steps=sum(
-                v.get("steps", 0) for v in results.values() if isinstance(v, dict)
-            ),
-            score=round(sum(scores) / len(scores), 4) if scores else 0.0,
-            rewards=list(_step_rewards),
-        )
+        results = {}
+        for task_id in task_names:
+            log_start(task=task_id, env="SafeAct-Env", model=model)
+            result = {"score": 0.0, "steps": 0, "error": None}
+            try:
+                env = IrreversibleActionEnv()
+                result = run_episode(
+                    env,
+                    task_id,
+                    client,
+                    model,
+                    log_step_fn=log_step,
+                    start_time=START_TIME,
+                    max_runtime=MAX_RUNTIME_SECONDS,
+                )
+                results[task_id] = result
+            except Exception as e:
+                logger.error("[%s] Episode failed: %s: %s", task_id, type(e).__name__, e)
+                results[task_id] = {"score": 0.0, "steps": 0, "error": str(e)}
+                result = results[task_id]
+            log_end(
+                success=result["score"] >= SUCCESS_SCORE_THRESHOLD,
+                steps=result["steps"],
+                score=result["score"],
+                rewards=list(_step_rewards),
+            )
 
     if args.json_mode:
         if args.task:
