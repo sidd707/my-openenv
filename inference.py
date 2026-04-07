@@ -71,7 +71,7 @@ def log_end(success: bool, steps: int, score: float, rewards: list) -> None:
 
 from openai import AzureOpenAI, OpenAI
 
-from safeact_env.runner import run_all_tasks, run_episode
+from safeact_env.runner import run_episode
 
 # ── LLM client ────────────────────────────────────────────────
 
