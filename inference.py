@@ -80,7 +80,7 @@ def _make_client():
     # Primary path (HF Space): API_BASE_URL is set
     if os.getenv("API_BASE_URL"):
         return OpenAI(
-            base_url=os.environ["API_BASE_URL"],
+            base_url=os.getenv("API_BASE_URL", "https://router.huggingface.co/v1"),
             api_key=os.environ["HF_TOKEN"],
         )
 
