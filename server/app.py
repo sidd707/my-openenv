@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import gradio as gr
-from fastapi import HTTPException
+from fastapi import Body, HTTPException
 from fastapi.responses import HTMLResponse
 from openenv.core.env_server.http_server import create_app
 from pydantic import BaseModel, ValidationError
@@ -190,7 +190,9 @@ def _serialize_observation(obs: SystemObservation) -> dict:
 
 
 @app.post("/reset")
-def reset_episode(request: ResetRequest):
+def reset_episode(request: ResetRequest | None = Body(default=None)):  # noqa: B008
+    if request is None:
+        request = ResetRequest()
     _cleanup_stale_sessions()
     episode_id = request.episode_id or str(uuid.uuid4())
     env = IrreversibleActionEnv()
