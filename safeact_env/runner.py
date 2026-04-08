@@ -117,7 +117,7 @@ def run_all_tasks(
         except Exception as e:
             logger.error("[%s] Episode failed: %s: %s", task_id, type(e).__name__, e)
             results[task_id] = {
-                "score": 0.0,
+                "score": 0.01,
                 "steps": 0,
                 "error": str(e),
             }

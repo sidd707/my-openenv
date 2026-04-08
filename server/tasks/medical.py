@@ -354,4 +354,4 @@ class MedicalTriageTask(BaseTask):
             + escalation_discipline
             + chart_review_discipline
         )
-        return round(max(0.0, min(1.0, final)), 4)
+        return round(max(0.01, min(0.99, final)), 4)

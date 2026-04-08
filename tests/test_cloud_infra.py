@@ -149,7 +149,7 @@ class TestCloudInfraGrader:
     # 8. zero-action baseline is zero — no passive scores awarded
     def test_zero_action_baseline_is_zero(self, task):
         score = task.grade([], _make_state())
-        assert score == 0.0
+        assert score == 0.01
 
     # 9. terminating with snapshots scores higher than without
     def test_snapshot_discipline_rewards_snapshotted_terminations(self, task):
@@ -180,7 +180,7 @@ class TestCloudInfraGrader:
         )
         active_score = task.grade(_ACTIVE_HISTORY, active_state)
         assert active_score > do_nothing_score
-        assert do_nothing_score == 0.0
+        assert do_nothing_score == 0.01
 
     # 11. scores always in valid range
     def test_scores_always_in_valid_range(self, task):

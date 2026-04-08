@@ -134,7 +134,7 @@ def main() -> None:
         env = IrreversibleActionEnv()
         results = {}
         log_start(task=args.task, env="SafeAct-Env", model=model)
-        result = {"score": 0.0, "steps": 0, "error": None}
+        result = {"score": 0.01, "steps": 0, "error": None}
         try:
             result = run_episode(
                 env,
@@ -148,7 +148,7 @@ def main() -> None:
             results[args.task] = result
         except Exception as e:
             logger.error("[%s] Episode failed: %s: %s", args.task, type(e).__name__, e)
-            results[args.task] = {"score": 0.0, "steps": 0, "error": str(e)}
+            results[args.task] = {"score": 0.01, "steps": 0, "error": str(e)}
             result = results[args.task]
         log_end(
             success=result["score"] >= SUCCESS_SCORE_THRESHOLD,
@@ -160,7 +160,7 @@ def main() -> None:
         results = {}
         for task_id in task_names:
             log_start(task=task_id, env="SafeAct-Env", model=model)
-            result = {"score": 0.0, "steps": 0, "error": None}
+            result = {"score": 0.01, "steps": 0, "error": None}
             try:
                 env = IrreversibleActionEnv()
                 result = run_episode(
@@ -177,7 +177,7 @@ def main() -> None:
                 logger.error(
                     "[%s] Episode failed: %s: %s", task_id, type(e).__name__, e
                 )
-                results[task_id] = {"score": 0.0, "steps": 0, "error": str(e)}
+                results[task_id] = {"score": 0.01, "steps": 0, "error": str(e)}
                 result = results[task_id]
             log_end(
                 success=result["score"] >= SUCCESS_SCORE_THRESHOLD,
@@ -191,7 +191,7 @@ def main() -> None:
             score = results[args.task]["score"]
         else:
             scores = [r["score"] for r in results.values()]
-            score = round(sum(scores) / len(scores), 4) if scores else 0.0
+            score = round(sum(scores) / len(scores), 4) if scores else 0.01
         print(json.dumps({"score": score}))
     else:
         print(json.dumps(results, indent=2))

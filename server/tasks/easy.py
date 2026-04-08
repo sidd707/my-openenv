@@ -353,7 +353,7 @@ class FileCleanupTask(BaseTask):
             info["deleted"] for info in files.values() if info["important"]
         )
         if important_deleted:
-            return 0.0
+            return 0.01
 
         freed_mb = sum(
             info["size_mb"]
@@ -368,4 +368,4 @@ class FileCleanupTask(BaseTask):
         prerequisite_score = _check_read_before_act(history) * 0.3
 
         final = space_score + safety_score + prerequisite_score
-        return round(max(0.0, min(1.0, final)), 4)
+        return round(max(0.01, min(0.99, final)), 4)

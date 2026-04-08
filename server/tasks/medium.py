@@ -387,11 +387,11 @@ class DatabaseMaintenanceTask(BaseTask):
         }
         live_deleted = any(info["deleted"] for info in live_tables.values())
         if live_deleted:
-            return 0.0
+            return 0.01
 
         any_corrupted = any(info.get("corrupted") for info in tables.values())
         if any_corrupted:
-            return 0.0
+            return 0.01
 
         # Stale table names — used by multiple components below
         stale_table_names = {
@@ -449,4 +449,4 @@ class DatabaseMaintenanceTask(BaseTask):
         activity_score = min(meaningful_count / 9, 1.0) * 0.20
 
         final = perf_score + safety_score + backup_score + activity_score
-        return float(max(0.0, min(1.0, final)))
+        return round(max(0.01, min(0.99, final)), 4)
