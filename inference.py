@@ -174,7 +174,9 @@ def main() -> None:
                 )
                 results[task_id] = result
             except Exception as e:
-                logger.error("[%s] Episode failed: %s: %s", task_id, type(e).__name__, e)
+                logger.error(
+                    "[%s] Episode failed: %s: %s", task_id, type(e).__name__, e
+                )
                 results[task_id] = {"score": 0.0, "steps": 0, "error": str(e)}
                 result = results[task_id]
             log_end(
