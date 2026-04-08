@@ -20,7 +20,7 @@ import gradio as gr
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse
 from openenv.core.env_server.http_server import create_app
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from models import ActionRecord, AgentAction, SystemObservation
 from server.environment import _TASK_CONFIG, IrreversibleActionEnv
@@ -214,7 +214,12 @@ def step_episode(request: StepRequest):
         )
     env, _ = _ENV_SESSIONS[request.episode_id]
 
-    action = AgentAction(**request.action)
+    try:
+        action = AgentAction(**request.action)
+    except (ValidationError, TypeError) as exc:
+        raise HTTPException(
+            status_code=422, detail=f"Invalid action payload: {exc}"
+        ) from exc
     obs = env.step(action)
 
     # Clean up completed episodes
