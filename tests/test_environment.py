@@ -59,7 +59,7 @@ class TestResetBehaviour:
 
     def test_reset_starts_with_full_steps(self, env):
         obs = env.reset(task_name="easy")
-        assert obs.steps_remaining == 20
+        assert obs.steps_remaining == 10
 
     def test_reset_with_invalid_task_raises_value_error(self, env):
         with pytest.raises(ValueError):
@@ -69,7 +69,7 @@ class TestResetBehaviour:
         env.reset(task_name="easy")
         env.step(make_action())
         obs2 = env.reset(task_name="easy")
-        assert obs2.steps_remaining == 20
+        assert obs2.steps_remaining == 10
         assert obs2.action_history == []
 
 
@@ -143,7 +143,7 @@ class TestEpisodeTermination:
     def test_episode_ends_when_max_steps_reached(self, env):
         env.reset(task_name="easy")
         obs = None
-        for _ in range(20):
+        for _ in range(10):
             obs = env.step(make_action(action_name="read_file_metadata"))
         assert obs.done is True
 
@@ -369,9 +369,9 @@ class TestMediumTaskIntegration:
         )
         assert obs.done is False
 
-    def test_medium_task_max_steps_is_12(self, env):
+    def test_medium_task_max_steps_is_10(self, env):
         obs = env.reset(task_name="medium")
-        assert obs.steps_remaining == 12
+        assert obs.steps_remaining == 10
 
     def test_optimize_table_storage_ends_episode(self, env):
         from models import AgentAction
@@ -419,9 +419,9 @@ class TestHardTaskIntegration:
         assert "services" in obs.current_state
         assert "new_environment" in obs.current_state
 
-    def test_hard_task_max_steps_is_20(self, env):
+    def test_hard_task_max_steps_is_18(self, env):
         obs = env.reset(task_name="hard")
-        assert obs.steps_remaining == 20
+        assert obs.steps_remaining == 18
 
     def test_terminate_without_escalation_ends_episode(self, env):
         from models import AgentAction

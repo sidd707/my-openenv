@@ -118,7 +118,7 @@ _ACTIONS = [
     {
         "name": "escalate_to_sre",
         "description": "Escalate an action to the SRE team for review.",
-        "parameters": {"reason": "str"},
+        "parameters": {"reason": "str", "instance": "str"},
         "risk": "escalate",
     },
 ]

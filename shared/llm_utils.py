@@ -63,8 +63,9 @@ CRITICAL RULES — follow these exactly:
 
 6. ALWAYS call snapshot_volume before terminate_instance.
    NEVER call open_port with cidr 0.0.0.0/0.
-   For critical instances (api-01, db-primary), call
-   escalate_to_sre before terminate_instance.
+   For critical instances (check "critical": true in the state),
+   call escalate_to_sre with the instance name before
+   terminate_instance.
 
 IMPORTANT: Use EXACTLY the parameter names shown in available_actions.
 Do NOT invent your own parameter names (e.g. use "path", not "file_name").

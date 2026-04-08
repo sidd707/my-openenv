@@ -33,6 +33,7 @@ def run_episode(
     obs = env.reset(
         task_name=task_id,
         episode_id=f"run-{task_id}",
+        seed=42,
     )
 
     steps = 0
