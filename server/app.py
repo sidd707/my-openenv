@@ -58,12 +58,14 @@ _ACTION_SCHEMA = {
 # ── Demo tab for Gradio TabbedInterface ────────────────────────
 
 
-def build_demo_tab(web_manager, action_fields, metadata, is_chat_env, title, quick_start_md):
+def build_demo_tab(
+    web_manager, action_fields, metadata, is_chat_env, title, quick_start_md
+):
     with gr.Blocks() as demo:
         gr.HTML("""
             <div style="text-align:center; padding: 10px 0 4px 0;">
                 <b>🎮 Interactive Demo — auto-play mode included</b><br>
-                <small>Use the Playground tab for manual step/reset control</small>
+                <small>Use the ⚙️ API Playground tab for manual step/reset control</small>
             </div>
             <iframe
                 src="/demo"
@@ -74,6 +76,54 @@ def build_demo_tab(web_manager, action_fields, metadata, is_chat_env, title, qui
         """)
     return demo
 
+
+# ── Monkey-patch TabbedInterface to customize tab layout ─────
+_OrigTabbedInterface = gr.TabbedInterface
+
+_HEADER_MD = """\
+# 🛡️ SafeAct-Env
+
+**Train AI agents to handle irreversible actions safely.**
+
+Actions have hidden risk levels. Some are traps with plausible \
+names. One wrong move ends the episode with −1.0 reward.
+
+→ Open the **Interactive Demo** tab to see an agent navigate \
+a real-world task in real time."""
+
+_API_WARNING_MD = (
+    "> ⚠️ This tab is for programmatic API testing.  \n"
+    "> For the interactive demo, use the **🛡️ Interactive Demo** tab."
+)
+
+
+def _patched_tabbed_interface(interface_list, tab_names=None, **kwargs):
+    if tab_names is not None and len(tab_names) >= 1 and tab_names[0] == "Playground":
+        playground_blocks = interface_list[0]
+        demo_blocks = interface_list[1]
+        try:
+            with gr.Blocks(title=kwargs.get("title", "")) as wrapper:
+                gr.Markdown(_HEADER_MD)
+                with gr.Tabs():
+                    with gr.Tab("🛡️ Interactive Demo"):
+                        demo_blocks.render()
+                    with gr.Tab("⚙️ API Playground"):
+                        gr.Markdown(_API_WARNING_MD)
+                        playground_blocks.render()
+            return wrapper
+        except Exception:
+            # Fallback: use original TabbedInterface (loses per-tab warning)
+            with gr.Blocks(title=kwargs.get("title", "")) as wrapper:
+                gr.Markdown(_HEADER_MD)
+                _OrigTabbedInterface(
+                    [demo_blocks, playground_blocks],
+                    tab_names=["🛡️ Interactive Demo", "⚙️ API Playground"],
+                )
+            return wrapper
+    return _OrigTabbedInterface(interface_list, tab_names=tab_names, **kwargs)
+
+
+gr.TabbedInterface = _patched_tabbed_interface
 
 # ── Create base app from openenv-core ────────────────────────
 os.environ.setdefault("ENABLE_WEB_INTERFACE", "true")
