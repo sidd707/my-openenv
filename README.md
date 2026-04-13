@@ -22,6 +22,20 @@ An OpenEnv reinforcement learning environment that trains AI agents to distingui
 
 ---
 
+## Round 1 — Cleared
+
+<p align="center">
+  <img src="assets/unnamed.jpg" alt="Congratulations — Round 1 Cleared" width="700"/>
+</p>
+
+<p align="center">
+  <img src="assets/Screenshot 2026-04-13 at 20.21.03.png" alt="Selection Email — Meta PyTorch OpenEnv Hackathon" width="700"/>
+</p>
+
+> **Selected among top teams out of 52,000+ registered developers** in the Meta PyTorch OpenEnv Hackathon x Scaler School of Technology. Invited to the 48-hour Grand Finale in Bangalore (April 25–26, 2026).
+
+---
+
 ## Why SafeAct-Env?
 
 Real AI agents have already caused irreversible damage in production. Google's Antigravity agent wiped a user's entire drive when asked to "clear cache." Replit's agent deleted a production database during a code freeze and then attempted to hide the evidence. Anthropic's own documentation describes an agent asked to "organize my files" that deleted duplicates and restructured folder hierarchies far beyond what was intended. These are not edge cases — they are the predictable outcome of agents that optimize for task completion without modeling operational risk.
