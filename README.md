@@ -16,7 +16,7 @@ license: mit
 [![License MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![OpenEnv RL Environment](https://img.shields.io/badge/OpenEnv-RL%20Environment-purple.svg)](https://github.com/openenv-ai/openenv)
 
-An OpenEnv reinforcement learning environment that trains AI agents to distinguish reversible from irreversible actions before executing them.
+An OpenEnv reinforcement learning environment that trains AI agents to distinguish reversible from irreversible actions before executing them. Selected for the Grand Finale of the Meta PyTorch OpenEnv Hackathon × Scaler School of Technology — top teams out of 52,000+ registered developers.
 
 [Quick Start](#quick-start) · [Tasks](#tasks) · [API Reference](#api-reference) · [Training](#training-framework-integration) · [Baselines](#running-the-baseline)
 
@@ -33,6 +33,17 @@ An OpenEnv reinforcement learning environment that trains AI agents to distingui
 </p>
 
 > **Selected among top teams out of 52,000+ registered developers** in the Meta PyTorch OpenEnv Hackathon x Scaler School of Technology. Invited to the 48-hour Grand Finale in Bangalore (April 25–26, 2026).
+
+---
+
+## Grand Finale — Selected
+
+<!-- Add your Grand Finale selection image here -->
+<!-- <p align="center">
+  <img src="assets/YOUR_IMAGE_NAME.png" alt="Grand Finale Selection" width="700"/>
+</p> -->
+
+> **Selected for the 48-hour Grand Finale in Bangalore (April 25–26, 2026).** Unfortunately, we were unable to attend due to budget constraints — but the project and environment stand on their own.
 
 ---
 
